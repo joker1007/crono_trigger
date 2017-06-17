@@ -1,53 +1,32 @@
 require "crono_trigger/version"
 
-require 'concurrent'
+require "ostruct"
+require "active_record"
+require "concurrent"
+require "crono_trigger/worker"
+require "crono_trigger/polling_thread"
+require "crono_trigger/schedulable"
 
 module CronoTrigger
-  module Scheduler
-    def run
-      execute_pool = Concurrent::ThreadPoolExecutor.new(
-        min_threads: 25,
-        max_threads: 25,
-        max_queue: 10000,
-      )
+  @config = OpenStruct.new(
+    polling_thread: 4,
+    polling_interval: 5,
+    executor_thread: 25,
+    model_names: [],
+  )
 
-      @model_queue = Queue.new
+  def self.config
+    @config
+  end
 
-      polling_threads = 5.map do 
-        Thread.new do
-          until @stop
-            begin
-              model = @model_queue.pop(true)
-              model.connection_pool.with_connection do
-                model.executables.find_in_batches do |records|
-                  model.where(id: records.map(&:id)).update_all(execute_lock: Time.current.to_i)
-                  execute_pool.post do
-                    model.connection_pool.with_connection do
-                      record.do_execute
-                    end
-                  end
-                end
-              end
-            rescue ThreadError => e
-              logger.error(e) unless e.message == "queue empty"
-            rescue => e
-              logger.error(e)
-            ensure
-              @model_queue << model if model
-            end
+  def self.configure
+    yield config
+  end
 
-            sleep 5
-          end
-        end
-      end
-
-      polling_threads.each(&:join)
-      execute_pool.shutdown
-      execute_pool.wait_on_termination
-    end
-
-    def stop
-      @stop = true
+  def self.load_config(yml, environment = nil)
+    config = YAML.load_file(yml)[environment || "default"]
+    config.each do |k, v|
+      @config[k] = v
     end
   end
 end

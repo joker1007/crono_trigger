@@ -1,3 +1,6 @@
+require "active_support/concern"
+require "chrono"
+
 module CronoTrigger
   module Schedulable
     DEFAULT_RETRY_LIMIT = 10
@@ -7,22 +10,46 @@ module CronoTrigger
     extend ActiveSupport::Concern
 
     included do
-      scope :executables, ->(from = Time.current) do
+      class_attribute :crono_trigger_options
+      self.crono_trigger_options = {}
+
+      scope :executables, ->(from: Time.current, primary_key_offset: nil, limit: 1000) do
         t = arel_table
-        where(t[:next_execute_at].lteq(from))
-          .where(t[:started_at].lteq(from))
-          .where(t[:finished_at].gt(from))
+
+        rel = where(t[:next_execute_at].lteq(from))
           .where(t[:execute_lock].lteq(from.to_i - (crono_trigger_options[:execute_lock_timeout] || DEFAULT_EXECUTE_LOCK_TIMEOUT)))
+
+        rel = rel.where(t[:started_at].lteq(from)) if column_names.include?("started_at")
+        rel = rel.where(t[:finished_at].gt(from).or(t[:finished_at].eq(nil)))  if column_names.include?("finished_at")
+        rel = rel.where(t[primary_key].gt(primary_key_offset)) if primary_key_offset
+
+        rel = rel.order("#{quoted_table_name}.#{quoted_primary_key} ASC").limit(limit)
+
+        rel
+      end
+
+      before_create :calculate_next_execute_at
+    end
+
+    module ClassMethods
+      def executables_with_lock(primary_key_offset: nil, limit: 1000)
+        records = nil
+        transaction do
+          records = executables(primary_key_offset: primary_key_offset, limit: limit).lock.to_a
+          unless records.empty?
+            where(id: records).update_all(execute_lock: Time.current.to_i)
+          end
+          records
+        end
       end
     end
 
     def do_execute
       if respond_to?(:crontab) && crontab
-        it = Chrono::Iterator.new(crontab)
-        next_execute_at = it.next
+        next_time = Chrono::NextTime.new(now: Time.now, source: crontab)
+        next_execute_at = next_time.to_time
       end
 
-      update!(execute_lock: Time.current)
       execute
       update!(next_execute_at: next_execute_at)
     rescue => e
@@ -56,6 +83,17 @@ module CronoTrigger
       update_columns(attributes)
 
       raise e
+    end
+
+    private
+
+    def calculate_next_execute_at
+      if crontab
+        it = Chrono::Iterator.new(crontab)
+        next_execute_at = it.next
+      end
+
+      self.next_execute_at ||= next_execute_at || Time.current
     end
   end
 end
