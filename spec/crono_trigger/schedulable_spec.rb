@@ -104,13 +104,139 @@ RSpec.describe CronoTrigger::Schedulable do
       end
 
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
-        expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
-        expect(Notification.results).to be_empty
+        aggregate_failures do
+          expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
+          expect(Notification.results).to be_empty
 
-        notification1.do_execute
+          notification1.do_execute
 
-        expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 30))
-        expect(Notification.results).to eq({notification1.id => "executed"})
+          notification1.reload
+
+          expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 30))
+          expect(notification1.last_executed_at).to eq(Time.utc(2017, 6, 18, 1, 0))
+          expect(notification1.execute_lock).to eq(0)
+          expect(Notification.results).to eq({notification1.id => "executed"})
+        end
+      end
+    end
+
+    context "#execute is error" do
+      it "call #execute and #retry!" do
+        Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
+          notification1
+        end
+
+        allow(notification1).to receive(:execute).and_raise("Error")
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          aggregate_failures do
+            expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
+            expect(Notification.results).to be_empty
+
+            begin
+              notification1.do_execute
+            rescue
+            end
+
+            notification1.reload
+
+            expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0, CronoTrigger::Schedulable::DEFAULT_RETRY_INTERVAL))
+            expect(notification1.last_executed_at).to be_nil
+            expect(notification1.execute_lock).to eq(0)
+            expect(notification1.retry_count).to eq(1)
+            expect(Notification.results).to be_empty
+          end
+        end
+      end
+    end
+
+    context "#execute throw :abort" do
+      it "call #execute and #reset!" do
+        Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
+          notification1
+        end
+
+        def notification1.execute
+          throw :abort
+          raise "Not reach"
+        end
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          aggregate_failures do
+            expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
+            expect(Notification.results).to be_empty
+
+            expect { notification1.do_execute }.to raise_error(CronoTrigger::Schedulable::AbortExecution)
+
+            notification1.reload
+
+            expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 30))
+            expect(notification1.last_executed_at).to be_nil
+            expect(notification1.execute_lock).to eq(0)
+            expect(notification1.retry_count).to eq(0)
+            expect(Notification.results).to be_empty
+          end
+        end
+      end
+    end
+
+    context "#execute throw :retry" do
+      it "call #execute and #retry!" do
+        Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
+          notification1
+        end
+
+        def notification1.execute
+          throw :retry
+          raise "Not reach"
+        end
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          aggregate_failures do
+            expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
+            expect(Notification.results).to be_empty
+
+            notification1.do_execute
+
+            notification1.reload
+
+            expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0, CronoTrigger::Schedulable::DEFAULT_RETRY_INTERVAL))
+            expect(notification1.last_executed_at).to be_nil
+            expect(notification1.execute_lock).to eq(0)
+            expect(notification1.retry_count).to eq(1)
+            expect(Notification.results).to be_empty
+          end
+        end
+      end
+    end
+
+    context "#execute throw :ok" do
+      it "call #execute and update next_execute_at and last_executed_at" do
+        Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
+          notification1
+        end
+
+        def notification1.execute
+          throw :ok
+          raise "Not reach"
+        end
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          aggregate_failures do
+            expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
+            expect(Notification.results).to be_empty
+
+            notification1.do_execute
+
+            notification1.reload
+
+            expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 30))
+            expect(notification1.last_executed_at).to eq(Time.utc(2017, 6, 18, 1, 0))
+            expect(notification1.execute_lock).to eq(0)
+            expect(notification1.retry_count).to eq(0)
+            expect(Notification.results).to be_empty
+          end
+        end
       end
     end
   end

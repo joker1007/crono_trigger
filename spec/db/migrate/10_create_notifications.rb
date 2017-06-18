@@ -12,7 +12,7 @@ if ActiveRecord.version < Gem::Version.new("5.0.0")
         t.string :last_error_name
         t.string :last_error_reason
         t.datetime :last_error_time
-        t.integer :retry_count
+        t.integer :retry_count, default: 0, null: false
 
         t.timestamps null: false
       end
@@ -34,7 +34,7 @@ else
         t.string :last_error_name
         t.string :last_error_reason
         t.datetime :last_error_time
-        t.integer :retry_count
+        t.integer :retry_count, default: 0, null: false
 
         t.timestamps null: false
       end
