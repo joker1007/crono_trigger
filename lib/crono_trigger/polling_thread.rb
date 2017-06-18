@@ -9,7 +9,7 @@ module CronoTrigger
 
     def run
       @thread = Thread.start do
-        @logger.info "Start polling thread (thread-#{Thread.current.object_id})"
+        @logger.info "(polling-thread-#{Thread.current.object_id}) Start polling thread"
         until @stop_flag.wait_for_set(CronoTrigger.config.polling_interval)
           begin
             model = @model_queue.pop(true)
@@ -30,6 +30,7 @@ module CronoTrigger
     end
 
     def poll(model)
+      @logger.debug "(polling-thread-#{Thread.current.object_id}) Poll #{model}"
       records = []
       primary_key_offset = nil
       begin
@@ -44,7 +45,12 @@ module CronoTrigger
         records.each do |record|
           @executor.post do
             model.connection_pool.with_connection do
-              record.do_execute
+              @logger.info "(executor-thread-#{Thread.current.object_id}) Execute #{record.class}-#{record.id}"
+              begin
+                record.do_execute
+              rescue Exception => e
+                @logger.error(e)
+              end
             end
           end
         end

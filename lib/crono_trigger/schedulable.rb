@@ -7,6 +7,8 @@ module CronoTrigger
     DEFAULT_RETRY_INTERVAL = 4
     DEFAULT_EXECUTE_LOCK_TIMEOUT = 600
 
+    class AbortExecution < StandardError; end
+
     extend ActiveSupport::Concern
 
     included do
@@ -28,7 +30,7 @@ module CronoTrigger
         rel
       end
 
-      before_create :calculate_next_execute_at
+      before_create :ensure_next_execute_at
     end
 
     module ClassMethods
@@ -45,55 +47,98 @@ module CronoTrigger
     end
 
     def do_execute
-      if respond_to?(:crontab) && crontab
-        next_time = Chrono::NextTime.new(now: Time.now, source: crontab)
-        next_execute_at = next_time.to_time
+      catch(:ok) do
+        catch(:retry) do
+          catch(:abort) do
+            execute
+            reset!
+            throw :ok
+          end
+          raise AbortExecution
+        end
+        retry!
+      end
+    rescue AbortExecution => ex
+      save_last_error_info(ex)
+      reset!
+
+      raise
+    rescue Exception => ex
+      save_last_error_info(ex)
+      retry_or_reset!
+
+      raise
+    end
+
+    def retry!
+      now = Time.current
+      wait = crono_trigger_options[:exponential_backoff] ? retry_interval * [2 * (retry_count - 1), 1].max : retry_interval
+      attributes = {next_execute_at: now + wait, execute_lock: 0}
+
+      if self.class.column_names.include?("retry_count")
+        attributes.merge!(retry_count: retry_count.to_i + 1)
       end
 
-      execute
-      update!(next_execute_at: next_execute_at, execute_lock: 0)
-    rescue => e
+      update_columns(attributes)
+    end
+
+    def reset!
+      attributes = {next_execute_at: calculate_next_execute_at, execute_lock: 0}
+
+      if self.class.column_names.include?("retry_count")
+        attributes.merge!(retry_count: 0)
+      end
+
+      update_columns(attributes)
+    end
+
+    private
+
+    def retry_or_reset!
+      if respond_to?(:retry_count) && retry_count <= retry_limit
+        retry!
+      else
+        reset!
+      end
+    end
+
+    def calculate_next_execute_at
+      if respond_to?(:crontab) && crontab
+        it = Chrono::Iterator.new(crontab)
+        it.next
+      end
+    end
+
+    def ensure_next_execute_at
+      self.next_execute_at ||= calculate_next_execute_at || Time.current
+    end
+
+    def retry_limit
+      crono_trigger_options[:retry_limit] || DEFAULT_RETRY_LIMIT
+    end
+
+    def retry_interval
+      crono_trigger_options[:retry_interval] || DEFAULT_RETRY_INTERVAL
+    end
+
+    def save_last_error_info(ex)
       columns = self.class.column_names
-      attributes = {execute_lock: 0}
+      attributes = {}
       now = Time.current
 
       if columns.include?("last_error_name")
-        attributes.merge!(last_error_name: e.class.to_s)
+        attributes.merge!(last_error_name: ex.class.to_s)
       end
 
       if columns.include?("last_error_reason")
-        attributes.merge!(last_error_reason: e.message)
+        attributes.merge!(last_error_reason: ex.message)
       end
 
       if columns.include?("last_error_time")
         attributes.merge!(last_error_time: now)
       end
 
-      if columns.include?("retry_count")
-        attributes.merge!(retry_count: retry_count + 1)
-      end
-
-      retry_limit = crono_trigger_options[:retry_limit] || DEFAULT_RETRY_LIMIT
-      retry_interval = crono_trigger_options[:retry_interval] || DEFAULT_RETRY_INTERVAL
-      if retry_count <= retry_limit
-        wait = crono_trigger_options[:exponential_backoff] ? retry_interval * [2 * (retry_count - 1), 1].max : retry_interval
-        attributes(next_execute_at: now + wait)
-      end
-
       update_columns(attributes)
-
-      raise e
-    end
-
-    private
-
-    def calculate_next_execute_at
-      if crontab
-        it = Chrono::Iterator.new(crontab)
-        next_execute_at = it.next
-      end
-
-      self.next_execute_at ||= next_execute_at || Time.current
     end
   end
 end
