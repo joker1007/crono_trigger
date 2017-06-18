@@ -20,8 +20,8 @@ module CronoTrigger
       polling_threads.each(&:run)
       polling_threads.each(&:join)
 
-      executor.shutdown
-      executor.wait_for_termination
+      @executor.shutdown
+      @executor.wait_for_termination
     end
 
     def stop

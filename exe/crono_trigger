@@ -1,3 +1,9 @@
 #!/usr/bin/env ruby
 
+begin
+  require "rails"
+  require File.expand_path("./config/environment", Rails.root)
+rescue LoadError
+end
+
 require "crono_trigger/cli"

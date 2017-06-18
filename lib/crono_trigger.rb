@@ -30,3 +30,7 @@ module CronoTrigger
     end
   end
 end
+
+if defined?(Rails)
+  require "crono_trigger/railtie"
+end

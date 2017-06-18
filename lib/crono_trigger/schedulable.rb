@@ -51,10 +51,10 @@ module CronoTrigger
       end
 
       execute
-      update!(next_execute_at: next_execute_at)
+      update!(next_execute_at: next_execute_at, execute_lock: 0)
     rescue => e
       columns = self.class.column_names
-      attributes = {}
+      attributes = {execute_lock: 0}
       now = Time.current
 
       if columns.include?("last_error_name")
