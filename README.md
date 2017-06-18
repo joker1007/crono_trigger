@@ -1,8 +1,10 @@
 # CronoTrigger
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/crono_trigger`. To experiment with that code, run `bin/console` for an interactive prompt.
+Asynchronous Job Scheduler for Rails.
 
-TODO: Delete this and the text above, and describe your gem
+The purpose of this gem is to integrate job schedule into Service Domain.
+
+Because of it, this gem uses ActiveRecord model as definition of job schedule.
 
 ## Installation
 
@@ -22,7 +24,51 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+Execute `schedule_model` generator.
+
+```
+TODO: Implement generator
+```
+
+Implement `#execute` method.
+
+```ruby
+class MailNotification < ActiveRecord::Base
+  include CronoTrigger::Schedulable
+
+  self.crono_trigger_options = {
+    retry_limit: 5,
+    retry_interval: 10,
+    exponential_backoff: true,
+    execute_lock_timeout: 300,
+  }
+
+  def execute
+    send_mail
+  end
+end
+```
+
+Run Worker.
+
+```
+$ crono_trigger MailNotification
+```
+
+```
+$ crono_trigger --help
+Usage: crono_trigger [options] MODEL [MODEL..]
+    -f, --config-file=CONFIG         Config file (ex. ./crono_trigger.rb)
+    -e, --envornment=ENV             Set environment name (ex. development, production)
+    -p, --polling-thread=SIZE        Polling thread size (Default: 1)
+    -i, --polling-interval=SECOND    Polling interval seconds (Default: 5)
+    -c, --concurrency=SIZE           Execute thread size (Default: 25)
+    -l, --log=LOGFILE                Set log output destination (Default: STDOUT or ./crono_trigger.log if daemonize is true)
+        --log-level=LEVEL            Set log level (Default: info)
+    -d, --daemonize                  Daemon mode
+        --pid=PIDFILE                Set pid file
+    -h, --help                       Prints this help
+```
 
 ## Development
 
