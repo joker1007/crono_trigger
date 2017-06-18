@@ -18,7 +18,7 @@ opt_parser = OptionParser.new do |opts|
     options[:env] = env
   end
 
-  opts.on("-p", "--polling-thread=SIZE", Integer, "Polling thread size (Default: 4)") do |i|
+  opts.on("-p", "--polling-thread=SIZE", Integer, "Polling thread size (Default: 1)") do |i|
     options[:polling_thread] = i
   end
 
