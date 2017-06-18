@@ -30,15 +30,19 @@ opt_parser = OptionParser.new do |opts|
     options[:execute_thread] = i
   end
 
-  opts.on("-l", "--log=LOGFILE", "Set log output destination (Default: STDOUT)") do |log|
+  opts.on("-l", "--log=LOGFILE", "Set log output destination (Default: STDOUT or ./crono_trigger.log if daemonize is true)") do |log|
     options[:log] = log
+  end
+
+  opts.on("--log-level=LEVEL", "Set log level (Default: info)") do |log_level|
+    options[:log_level] = log_level
   end
 
   opts.on("-d", "--daemonize", "Daemon mode") do
     options[:daemonize] = true
   end
 
-  opts.on(nil, "--pid=PIDFILE", "Set pid file") do |pid|
+  opts.on("--pid=PIDFILE", "Set pid file") do |pid|
     options[:pid_path] = pid
   end
 
@@ -50,6 +54,12 @@ end
 
 opt_parser.parse!
 
+begin
+  require "rails"
+  require File.expand_path("./config/environment", Rails.root)
+rescue LoadError
+end
+
 CronoTrigger.load_config(options[:config], options[:env]) if options[:config]
 
 %i(polling_thread polling_interval execute_thread).each do |name|
@@ -60,9 +70,9 @@ CronoTrigger.config.model_names.concat(ARGV)
 
 se = ServerEngine.create(nil, CronoTrigger::Worker, {
   daemonize: options[:daemonize],
-  log: options[:log] || "-",
+  log: options[:log] || (options[:daemonize] ? "./crono_trigger.log" : "-"),
   log_level: options[:log_level] || "info",
-  pid_path: options[:pid_path],
+  pid_path: options[:pid_path] || (options[:daemonize] ? "./crono_trigger.pid" : nil),
   supervisor: true,
   server_process_name: "crono_trigger[worker]",
   restart_server_process: true,
