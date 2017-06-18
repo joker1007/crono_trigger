@@ -13,6 +13,7 @@ module CronoTrigger
         min_threads: 1,
         max_threads: CronoTrigger.config.executor_thread,
       )
+      ActiveRecord::Base.logger = logger
     end
 
     def run
