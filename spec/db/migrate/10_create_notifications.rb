@@ -5,6 +5,7 @@ if ActiveRecord.version < Gem::Version.new("5.0.0")
         t.string :name
         t.string :crontab
         t.datetime :next_execute_at
+        t.datetime :last_executed_at
         t.integer  :execute_lock, limit: 8, default: 0, null: false
         t.datetime :started_at, null: false
         t.datetime :finished_at
@@ -25,6 +26,7 @@ else
         t.string :name
         t.string :crontab
         t.datetime :next_execute_at
+        t.datetime :last_executed_at
         t.integer  :execute_lock, limit: 8, default: 0, null: false
         t.datetime :started_at, null: false
         t.datetime :finished_at

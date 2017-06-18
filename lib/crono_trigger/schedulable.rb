@@ -51,7 +51,7 @@ module CronoTrigger
         catch(:retry) do
           catch(:abort) do
             execute
-            reset!
+            reset!(true)
             throw :ok
           end
           raise AbortExecution
@@ -71,6 +71,8 @@ module CronoTrigger
     end
 
     def retry!
+      logger.info "Retry #{self.class}-#{id}"
+
       now = Time.current
       wait = crono_trigger_options[:exponential_backoff] ? retry_interval * [2 * (retry_count - 1), 1].max : retry_interval
       attributes = {next_execute_at: now + wait, execute_lock: 0}
@@ -82,8 +84,14 @@ module CronoTrigger
       update_columns(attributes)
     end
 
-    def reset!
+    def reset!(update_last_executed_at = false)
+      logger.info "Reset execution schedule #{self.class}-#{id}"
+
       attributes = {next_execute_at: calculate_next_execute_at, execute_lock: 0}
+
+      if update_last_executed_at && self.class.column_names.include?("last_executed_at")
+        attributes.merge!(last_executed_at: Time.current)
+      end
 
       if self.class.column_names.include?("retry_count")
         attributes.merge!(retry_count: 0)
