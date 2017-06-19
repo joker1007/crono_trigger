@@ -1,5 +1,10 @@
 sudo: false
 language: ruby
+cache: bundler
 rvm:
   - 2.4.1
-before_install: gem install bundler -v 1.14.6
+  - 2.3.3
+gemfile:
+  - gemfiles/activerecord-42.gemfile
+  - gemfiles/activerecord-50.gemfile
+  - gemfiles/activerecord-51.gemfile
