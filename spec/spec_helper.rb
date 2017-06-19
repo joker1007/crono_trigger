@@ -16,8 +16,13 @@ class Notification < ActiveRecord::Base
     @results
   end
 
+  after_execute :after
+
   def execute
     self.class.results[id] = "executed"
+  end
+
+  def after
   end
 end
 

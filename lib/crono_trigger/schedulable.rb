@@ -10,10 +10,13 @@ module CronoTrigger
     class AbortExecution < StandardError; end
 
     extend ActiveSupport::Concern
+    include ActiveSupport::Callbacks
 
     included do
       class_attribute :crono_trigger_options
       self.crono_trigger_options = {}
+
+      define_model_callbacks :execute
 
       scope :executables, ->(from: Time.current, primary_key_offset: nil, limit: 1000) do
         t = arel_table
@@ -47,18 +50,20 @@ module CronoTrigger
     end
 
     def do_execute
-      catch(:ok) do
-        catch(:retry) do
-          catch(:abort) do
-            execute
-            throw :ok
+      run_callbacks :execute do
+        catch(:ok) do
+          catch(:retry) do
+            catch(:abort) do
+              execute
+              throw :ok
+            end
+            raise AbortExecution
           end
-          raise AbortExecution
+          retry!
+          return
         end
-        retry!
-        return
+        reset!(true)
       end
-      reset!(true)
     rescue AbortExecution => ex
       save_last_error_info(ex)
       reset!

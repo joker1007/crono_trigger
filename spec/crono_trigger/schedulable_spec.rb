@@ -107,6 +107,7 @@ RSpec.describe CronoTrigger::Schedulable do
         aggregate_failures do
           expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
           expect(Notification.results).to be_empty
+          expect(notification1).to receive(:after)
 
           notification1.do_execute
 
