@@ -4,28 +4,28 @@ RSpec.describe CronoTrigger::Schedulable do
   let(:notification1) do
     Notification.create!(
       name: "notification1",
-      crontab: "0,30 * * * *",
+      cron: "0,30 * * * *",
       started_at: Time.current,
     )
   end
   let(:notification2) do
     Notification.create!(
       name: "notification2",
-      crontab: "10 * * * *",
+      cron: "10 * * * *",
       started_at: Time.current,
     )
   end
   let(:notification3) do
     Notification.create!(
       name: "notification3",
-      crontab: "*/10 * * * *",
+      cron: "*/10 * * * *",
       started_at: Time.current,
     )
   end
   let(:notification4) do
     Notification.create!(
       name: "notification4",
-      crontab: "*/10 * * * *",
+      cron: "*/10 * * * *",
       started_at: Time.current,
     )
   end

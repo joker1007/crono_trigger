@@ -12,7 +12,7 @@ class <%= migration_class_name %> < ActiveRecord::Migration<%= Rails::VERSION::M
 <% end -%>
 
       # columns for CronoTrigger::Schedulable
-      t.string    :crontab
+      t.string    :cron
       t.datetime  :next_execute_at
       t.datetime  :last_executed_at
       t.integer   :execute_lock, limit: 8, default: 0, null: false

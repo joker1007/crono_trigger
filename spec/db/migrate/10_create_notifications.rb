@@ -3,7 +3,7 @@ if ActiveRecord.version < Gem::Version.new("5.0.0")
     def change
       create_table :notifications do |t|
         t.string :name
-        t.string :crontab
+        t.string :cron
         t.datetime :next_execute_at
         t.datetime :last_executed_at
         t.integer  :execute_lock, limit: 8, default: 0, null: false
@@ -24,7 +24,7 @@ else
     def change
       create_table :notifications do |t|
         t.string :name
-        t.string :crontab
+        t.string :cron
         t.datetime :next_execute_at
         t.datetime :last_executed_at
         t.integer  :execute_lock, limit: 8, default: 0, null: false

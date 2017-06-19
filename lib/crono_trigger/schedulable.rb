@@ -117,8 +117,8 @@ module CronoTrigger
     end
 
     def calculate_next_execute_at
-      if respond_to?(:crontab) && crontab
-        it = Chrono::Iterator.new(crontab)
+      if respond_to?(:cron) && cron
+        it = Chrono::Iterator.new(cron)
         it.next
       end
     end
