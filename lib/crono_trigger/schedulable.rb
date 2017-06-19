@@ -14,8 +14,8 @@ module CronoTrigger
 
     included do
       class_attribute :crono_trigger_options, :executable_conditions
-      self.crono_trigger_options = {}
-      self.executable_conditions = []
+      self.crono_trigger_options ||= {}
+      self.executable_conditions ||= []
 
       define_model_callbacks :execute
 
