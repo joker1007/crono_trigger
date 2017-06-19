@@ -13,8 +13,9 @@ module CronoTrigger
     include ActiveSupport::Callbacks
 
     included do
-      class_attribute :crono_trigger_options
+      class_attribute :crono_trigger_options, :executable_conditions
       self.crono_trigger_options = {}
+      self.executable_conditions = []
 
       define_model_callbacks :execute
 
@@ -29,6 +30,14 @@ module CronoTrigger
         rel = rel.where(t[primary_key].gt(primary_key_offset)) if primary_key_offset
 
         rel = rel.order("#{quoted_table_name}.#{quoted_primary_key} ASC").limit(limit)
+
+        rel = executable_conditions.reduce(rel) do |merged, pr|
+          if pr.arity == 0
+            merged.merge(instance_exec(&pr))
+          else
+            merged.merge(instance_exec(from, &pr))
+          end
+        end
 
         rel
       end
@@ -46,6 +55,16 @@ module CronoTrigger
           end
           records
         end
+      end
+
+      private
+
+      def add_executable_conditions(pr)
+        self.executable_conditions << pr
+      end
+
+      def clear_executable_conditions
+        self.executable_conditions.clear
       end
     end
 

@@ -51,6 +51,27 @@ RSpec.describe CronoTrigger::Schedulable do
         expect(Notification.executables).to match_array([notification2, notification3])
       end
     end
+
+    context "has executable_conditions" do
+      after do
+        Notification.send(:clear_executable_conditions)
+      end
+
+      it "filter by executable_conditions" do
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          notification1
+          notification2
+          notification3
+          notification4.update(finished_at: Time.current + 1)
+        end
+
+        Notification.send(:add_executable_conditions, -> { where(cron: "10 * * * *") })
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 10)) do
+          expect(Notification.executables).to match_array([notification2])
+        end
+      end
+    end
   end
 
   describe ".executables_with_lock" do
