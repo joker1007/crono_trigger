@@ -24,13 +24,43 @@ Or install it yourself as:
 
 ## Usage
 
-Execute `schedule_model` generator.
+#### Execute `crono_trigger:model` generator.
 
 ```
-TODO: Implement generator
+$ rails g crono_trigger:model mail_notification
+      create  db/migrate/20170619064928_create_mail_notifications.rb
+      create  app/models/mail_notification.rb
+      # ...
 ```
 
-Implement `#execute` method.
+#### Migration sample
+
+```ruby
+class CreateMailNotifications < ActiveRecord::Migration
+  def change
+    create_table :mail_notifications do |t|
+
+      # columns for CronoTrigger::Schedulable
+      t.string    :cron
+      t.datetime  :next_execute_at
+      t.datetime  :last_executed_at
+      t.integer   :execute_lock, limit: 8, default: 0, null: false
+      t.datetime  :started_at, null: false
+      t.datetime  :finished_at
+      t.string    :last_error_name
+      t.string    :last_error_reason
+      t.datetime  :last_error_time
+      t.integer   :retry_count, default: 0, null: false
+
+
+      t.timestamps
+    end
+    add_index :mail_notifications, [:next_execute_at, :execute_lock, :started_at, :finished_at], name: "crono_trigger_index_on_mail_notifications"
+  end
+end
+```
+
+#### Implement `#execute` method
 
 ```ruby
 class MailNotification < ActiveRecord::Base
@@ -43,13 +73,25 @@ class MailNotification < ActiveRecord::Base
     execute_lock_timeout: 300,
   }
 
+  # `execute` callback is defined
+  # can use `before_execute`, `after_execute`, `around_execute`
+
+  # If execute method raise Exception, worker retry task until reach `retry_limit`
+  # If `retry_count` reaches `retry_limit`, task schedule is reset.
+  # 
+  # If record has cron value, reset process set next execution time by cron definition
+  # If record has no cron value, reset process clear next execution time
   def execute
     send_mail
+
+    throw :retry # break execution and retry task
+    throw :abort # break execution and raise AbortExecution. AbortExecution is not retried
+    throw :ok    # break execution and handle task as success
   end
 end
 ```
 
-Run Worker.
+#### Run Worker
 
 ```
 $ crono_trigger MailNotification
@@ -69,6 +111,23 @@ Usage: crono_trigger [options] MODEL [MODEL..]
         --pid=PIDFILE                Set pid file
     -h, --help                       Prints this help
 ```
+
+## Specification
+
+### Columns
+
+|name             |type    |required|description                                                                                                                                                  |
+|-----------------|--------|--------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|cron             |string  |no      |Recurring schedule formatted by cron style                                                                                                                   |
+|next_execute_at  |datetime|yes     |Timestamp of next execution. Worker executes task if this column <= now                                                                                      |
+|last_executed_at |datetime|no      |Timestamp of last execution                                                                                                                                  |
+|execute_lock     |integer |yes     |Timestamp of fetching record in order to hide record from other transaction during execute lock timeout. <br> when execution complete this column is reset to 0|
+|started_at       |datetime|no      |Timestamp of schedule activated                                                                                                                              |
+|finished_at      |datetime|no      |Timestamp of schedule deactivated                                                                                                                            |
+|last_error_name  |string  |no      |Class name of last error                                                                                                                                     |
+|last_error_reason|string  |no      |Error message of last error                                                                                                                                  |
+|last_error_time  |datetime|no      |Timestamp of last error occured                                                                                                                              |
+|retry_count      |integer |no      |Retry count. <br> If execution succeed retry_count is reset to 0                                                                                                  |
 
 ## Development
 
