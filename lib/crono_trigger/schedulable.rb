@@ -175,7 +175,7 @@ module CronoTrigger
         attributes.merge!(last_error_time: now)
       end
 
-      update_columns(attributes)
+      update_columns(attributes) unless attributes.empty?
     end
   end
 end
