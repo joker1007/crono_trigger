@@ -121,6 +121,7 @@ Usage: crono_trigger [options] MODEL [MODEL..]
 |cron             |string  |no      |no    |Recurring schedule formatted by cron style                                                                                                                   |
 |next_execute_at  |datetime|yes     |yes   |Timestamp of next execution. Worker executes task if this column <= now                                                                                      |
 |last_executed_at |datetime|no      |yes   |Timestamp of last execution                                                                                                                                  |
+|timezone         |datetime|no      |yes   |Timezone name (Parsed by tzinfo)                                                                                                                             |
 |execute_lock     |integer |yes     |yes   |Timestamp of fetching record in order to hide record from other transaction during execute lock timeout. <br> when execution complete this column is reset to 0|
 |started_at       |datetime|no      |yes   |Timestamp of schedule activated                                                                                                                              |
 |finished_at      |datetime|no      |yes   |Timestamp of schedule deactivated                                                                                                                            |

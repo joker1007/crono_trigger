@@ -29,6 +29,21 @@ RSpec.describe CronoTrigger::Schedulable do
       started_at: Time.current,
     )
   end
+  let(:notification5) do
+    Notification.create!(
+      name: "notification5",
+      cron: "10 18 * * *",
+      started_at: Time.current,
+    )
+  end
+  let(:notification6) do
+    Notification.create!(
+      name: "notification6",
+      cron: "10 18 * * *",
+      timezone: "US/Pacific",
+      started_at: Time.current,
+    )
+  end
 
   describe "before_create callback" do
     it "calculate_next_execute_at" do
@@ -113,6 +128,19 @@ RSpec.describe CronoTrigger::Schedulable do
         aggregate_failures do
           expect(records).to match_array([notification3])
           expect(records[0].reload.execute_lock).to eq(Time.current.to_i)
+        end
+      end
+    end
+  end
+
+  describe "#calculate_next_execute_at" do
+    it "consider timezone" do
+      Timecop.freeze(Time.utc(2017, 6, 18, 17, 0)) do
+        Time.use_zone("Asia/Tokyo") do
+          aggregate_failures do
+            expect(notification5.send(:calculate_next_execute_at)).to eq(Time.use_zone("Asia/Tokyo") { Time.zone.local(2017, 6, 19, 18, 10) })
+            expect(notification6.send(:calculate_next_execute_at)).to eq(Time.use_zone(notification6.timezone) { Time.zone.local(2017, 6, 18, 18, 10) })
+          end
         end
       end
     end

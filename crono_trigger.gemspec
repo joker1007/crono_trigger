@@ -25,6 +25,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "chrono"
   spec.add_dependency "serverengine"
   spec.add_dependency "concurrent-ruby"
+  spec.add_dependency "tzinfo"
   spec.add_dependency "activerecord", ">= 4.2"
 
   spec.add_development_dependency "sqlite3"

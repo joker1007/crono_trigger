@@ -1,5 +1,7 @@
 require "active_support/concern"
+require "active_support/core_ext/object"
 require "chrono"
+require "tzinfo"
 
 module CronoTrigger
   module Schedulable
@@ -58,7 +60,7 @@ module CronoTrigger
       end
 
       def crono_trigger_column_name(name)
-        crono_trigger_options["#{name}_column_name".to_sym].to_s || name.to_s
+        crono_trigger_options["#{name}_column_name".to_sym].try(:to_s) || name.to_s
       end
 
       private
@@ -143,10 +145,11 @@ module CronoTrigger
       end
     end
 
-    def calculate_next_execute_at
+    def calculate_next_execute_at(now = Time.current)
       if self[crono_trigger_column_name(:cron)]
-        it = Chrono::Iterator.new(self[crono_trigger_column_name(:cron)])
-        it.next
+        tz = self[crono_trigger_column_name(:timezone)].try { |zn| TZInfo::Timezone.get(zn) }
+        now = tz ? now.in_time_zone(tz) : now
+        Chrono::NextTime.new(now: now, source: self[crono_trigger_column_name(:cron)]).to_time
       end
     end
 

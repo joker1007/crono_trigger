@@ -15,6 +15,7 @@ class <%= migration_class_name %> < ActiveRecord::Migration<%= Rails::VERSION::M
       t.string    :cron
       t.datetime  :next_execute_at
       t.datetime  :last_executed_at
+      t.string    :timezone
       t.integer   :execute_lock, limit: 8, default: 0, null: false
       t.datetime  :started_at, null: false
       t.datetime  :finished_at
