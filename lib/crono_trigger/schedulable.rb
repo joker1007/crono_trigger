@@ -17,16 +17,20 @@ module CronoTrigger
       self.crono_trigger_options ||= {}
       self.executable_conditions ||= []
 
+      %w(cron next_execute_at last_executed_at execute_lock started_at finished_at).each do |renamable_column|
+        self.crono_trigger_options["#{renamable_column}_column_name".to_sym] = renamable_column
+      end
+
       define_model_callbacks :execute
 
       scope :executables, ->(from: Time.current, primary_key_offset: nil, limit: 1000) do
         t = arel_table
 
-        rel = where(t[:next_execute_at].lteq(from))
-          .where(t[:execute_lock].lteq(from.to_i - (crono_trigger_options[:execute_lock_timeout] || DEFAULT_EXECUTE_LOCK_TIMEOUT)))
+        rel = where(t[crono_trigger_options[:next_execute_at_column_name]].lteq(from))
+          .where(t[crono_trigger_options[:execute_lock_column_name]].lteq(from.to_i - (crono_trigger_options[:execute_lock_timeout] || DEFAULT_EXECUTE_LOCK_TIMEOUT)))
 
-        rel = rel.where(t[:started_at].lteq(from)) if column_names.include?("started_at")
-        rel = rel.where(t[:finished_at].gt(from).or(t[:finished_at].eq(nil)))  if column_names.include?("finished_at")
+        rel = rel.where(t[crono_trigger_options[:started_at_column_name]].lteq(from)) if column_names.include?(crono_trigger_options[:started_at_column_name])
+        rel = rel.where(t[crono_trigger_options[:finished_at_column_name]].gt(from).or(t[crono_trigger_options[:finished_at_column_name]].eq(nil)))  if column_names.include?(crono_trigger_options[:finished_at_column_name])
         rel = rel.where(t[primary_key].gt(primary_key_offset)) if primary_key_offset
 
         rel = rel.order("#{quoted_table_name}.#{quoted_primary_key} ASC").limit(limit)
@@ -51,7 +55,7 @@ module CronoTrigger
         transaction do
           records = executables(primary_key_offset: primary_key_offset, limit: limit).lock.to_a
           unless records.empty?
-            where(id: records).update_all(execute_lock: Time.current.to_i)
+            where(id: records).update_all(crono_trigger_options[:execute_lock_column_name] => Time.current.to_i)
           end
           records
         end
@@ -100,7 +104,7 @@ module CronoTrigger
 
       now = Time.current
       wait = crono_trigger_options[:exponential_backoff] ? retry_interval * [2 * (retry_count - 1), 1].max : retry_interval
-      attributes = {next_execute_at: now + wait, execute_lock: 0}
+      attributes = {crono_trigger_options[:next_execute_at_column_name] => now + wait, crono_trigger_options[:execute_lock_column_name] => 0}
 
       if self.class.column_names.include?("retry_count")
         attributes.merge!(retry_count: retry_count.to_i + 1)
@@ -112,10 +116,10 @@ module CronoTrigger
     def reset!(update_last_executed_at = false)
       logger.info "Reset execution schedule #{self.class}-#{id}" if logger
 
-      attributes = {next_execute_at: calculate_next_execute_at, execute_lock: 0}
+      attributes = {crono_trigger_options[:next_execute_at_column_name] => calculate_next_execute_at, crono_trigger_options[:execute_lock_column_name] => 0}
 
-      if update_last_executed_at && self.class.column_names.include?("last_executed_at")
-        attributes.merge!(last_executed_at: Time.current)
+      if update_last_executed_at && self.class.column_names.include?(crono_trigger_options[:last_executed_at_column_name])
+        attributes.merge!(crono_trigger_options[:last_executed_at_column_name] => Time.current)
       end
 
       if self.class.column_names.include?("retry_count")
@@ -136,14 +140,14 @@ module CronoTrigger
     end
 
     def calculate_next_execute_at
-      if respond_to?(:cron) && cron
-        it = Chrono::Iterator.new(cron)
+      if self[crono_trigger_options[:cron_column_name]]
+        it = Chrono::Iterator.new(self[crono_trigger_options[:cron_column_name]])
         it.next
       end
     end
 
     def ensure_next_execute_at
-      self.next_execute_at ||= calculate_next_execute_at || Time.current
+      self[crono_trigger_options[:next_execute_at_column_name]] ||= calculate_next_execute_at || Time.current
     end
 
     def retry_limit
