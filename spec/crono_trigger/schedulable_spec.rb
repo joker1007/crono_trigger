@@ -196,6 +196,8 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.last_executed_at).to be_nil
             expect(notification1.execute_lock).to eq(0)
             expect(notification1.retry_count).to eq(0)
+            expect(notification1.last_error_name).to eq("CronoTrigger::Schedulable::AbortExecution")
+            expect(notification1.last_error_time).to eq(Time.utc(2017, 6, 18, 1, 0))
             expect(Notification.results).to be_empty
           end
         end
