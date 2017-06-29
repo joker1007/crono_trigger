@@ -292,4 +292,53 @@ RSpec.describe CronoTrigger::Schedulable do
       end
     end
   end
+
+  describe "#locking?" do
+    it "return locking status as Boolean" do
+      expect(notification1.locking?).to be_falsey
+      notification1.execute_lock = 1
+      expect(notification1.locking?).to be_truthy
+    end
+  end
+
+  describe "#assume_executing?" do
+    it "return locking status as Boolean" do
+      expect(notification1.assume_executing?).to be_falsey
+
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+        notification1.execute_lock = Time.now.to_i
+        expect(notification1.assume_executing?).to be_truthy
+      end
+
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 10, 0)) do
+        expect(notification1.assume_executing?).to be_truthy
+      end
+
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 10, 1)) do
+        expect(notification1.assume_executing?).to be_falsey
+      end
+    end
+  end
+
+  describe "#assume_executing?" do
+    it "return locking status as Boolean" do
+      expect(notification1.idling?).to be_truthy
+
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+        notification1.execute_lock = Time.now.to_i
+        expect(notification1.idling?).to be_falsey
+      end
+
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 10, 0)) do
+        expect(notification1.idling?).to be_falsey
+      end
+
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 10, 1)) do
+        expect(notification1.idling?).to be_falsey
+      end
+
+      notification1.execute_lock = 0
+      expect(notification1.idling?).to be_truthy
+    end
+  end
 end

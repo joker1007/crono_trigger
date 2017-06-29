@@ -25,7 +25,7 @@ module CronoTrigger
         t = arel_table
 
         rel = where(t[crono_trigger_column_name(:next_execute_at)].lteq(from))
-          .where(t[crono_trigger_column_name(:execute_lock)].lteq(from.to_i - (crono_trigger_options[:execute_lock_timeout] || DEFAULT_EXECUTE_LOCK_TIMEOUT)))
+          .where(t[crono_trigger_column_name(:execute_lock)].lteq(from.to_i - execute_lock_timeout))
 
         rel = rel.where(t[crono_trigger_column_name(:started_at)].lteq(from)) if column_names.include?(crono_trigger_column_name(:started_at))
         rel = rel.where(t[crono_trigger_column_name(:finished_at)].gt(from).or(t[crono_trigger_column_name(:finished_at)].eq(nil)))  if column_names.include?(crono_trigger_column_name(:finished_at))
@@ -61,6 +61,10 @@ module CronoTrigger
 
       def crono_trigger_column_name(name)
         crono_trigger_options["#{name}_column_name".to_sym].try(:to_s) || name.to_s
+      end
+
+      def execute_lock_timeout
+        (crono_trigger_options[:execute_lock_timeout] || DEFAULT_EXECUTE_LOCK_TIMEOUT)
       end
 
       private
@@ -129,6 +133,20 @@ module CronoTrigger
       end
 
       update_columns(attributes)
+    end
+
+    def assume_executing?
+      execute_lock_timeout = self.class.execute_lock_timeout
+      locking? &&
+        self[crono_trigger_column_name(:execute_lock)] + execute_lock_timeout >= Time.now.to_i
+    end
+
+    def locking?
+      self[crono_trigger_column_name(:execute_lock)] > 0
+    end
+
+    def idling?
+      !locking?
     end
 
     def crono_trigger_column_name(name)
