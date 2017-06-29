@@ -13,6 +13,7 @@ module CronoTrigger
     polling_interval: 5,
     executor_thread: 25,
     model_names: [],
+    error_handlers: [],
   )
 
   def self.config

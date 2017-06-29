@@ -3,6 +3,8 @@ require "active_support/core_ext/object"
 require "chrono"
 require "tzinfo"
 
+require "crono_trigger/exception_handler"
+
 module CronoTrigger
   module Schedulable
     DEFAULT_RETRY_LIMIT = 10
@@ -102,7 +104,7 @@ module CronoTrigger
       raise
     rescue Exception => ex
       save_last_error_info(ex)
-      retry_or_reset!
+      retry_or_reset!(ex)
 
       raise
     end
@@ -157,10 +159,11 @@ module CronoTrigger
 
     private
 
-    def retry_or_reset!
-      if respond_to?(:retry_count) && retry_count.to_i <= retry_limit
+    def retry_or_reset!(ex)
+      if respond_to?(:retry_count) && retry_count.to_i < retry_limit
         retry!
       else
+        CronoTrigger::ExceptionHandler.handle_exception(self, ex)
         reset!(false)
       end
     end

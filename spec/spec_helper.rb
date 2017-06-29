@@ -11,6 +11,14 @@ ActiveRecord::Base.establish_connection(
 class Notification < ActiveRecord::Base
   include CronoTrigger::Schedulable
 
+  self.crono_trigger_options = {
+    retry_limit: 1,
+    error_handlers: [
+      proc { |ex, record| record.class.results[record.id] = ex.message },
+      :error_handler
+    ]
+  }
+
   @results = {}
   def self.results
     @results
@@ -23,6 +31,10 @@ class Notification < ActiveRecord::Base
   end
 
   def after
+  end
+
+  def error_handler(ex)
+    @error = ex
   end
 end
 
