@@ -80,22 +80,24 @@ module CronoTrigger
 
     def do_execute
       run_callbacks :execute do
-        catch(:ok) do
-          catch(:retry) do
-            catch(:abort) do
-              execute
-              throw :ok
+        catch(:ok_without_reset) do
+          catch(:ok) do
+            catch(:retry) do
+              catch(:abort) do
+                execute
+                throw :ok
+              end
+              raise AbortExecution
             end
-            raise AbortExecution
+            retry!
+            return
           end
-          retry!
-          return
+          reset!
         end
-        reset!(true)
       end
     rescue AbortExecution => ex
       save_last_error_info(ex)
-      reset!
+      reset!(false)
 
       raise
     rescue Exception => ex
@@ -119,7 +121,7 @@ module CronoTrigger
       update_columns(attributes)
     end
 
-    def reset!(update_last_executed_at = false)
+    def reset!(update_last_executed_at = true)
       logger.info "Reset execution schedule #{self.class}-#{id}" if logger
 
       attributes = {crono_trigger_column_name(:next_execute_at) => calculate_next_execute_at, crono_trigger_column_name(:execute_lock) => 0}
@@ -159,7 +161,7 @@ module CronoTrigger
       if respond_to?(:retry_count) && retry_count.to_i <= retry_limit
         retry!
       else
-        reset!
+        reset!(false)
       end
     end
 
