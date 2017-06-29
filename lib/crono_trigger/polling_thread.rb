@@ -15,9 +15,9 @@ module CronoTrigger
             model = @model_queue.pop(true)
             poll(model)
           rescue ThreadError => e
-            logger.error(e) unless e.message == "queue empty"
+            @logger.error(e) unless e.message == "queue empty"
           rescue => e
-            logger.error(e)
+            @logger.error(e)
           ensure
             @model_queue << model if model
           end
