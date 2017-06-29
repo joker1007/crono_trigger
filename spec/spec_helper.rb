@@ -1,5 +1,7 @@
+require "rollbar"
 require "crono_trigger"
 require "serverengine"
+require "crono_trigger/rollbar"
 
 require "timecop"
 

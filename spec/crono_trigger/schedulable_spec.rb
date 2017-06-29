@@ -359,6 +359,14 @@ RSpec.describe CronoTrigger::Schedulable do
           end
         end
 
+        scope = {
+          framework: "CronoTrigger: #{::CronoTrigger::VERSION}",
+          context: "#{notification1.class}/#{notification1.id}"
+        }
+        rollbar_notifier = double(:rollbar_notifier)
+        expect(Rollbar).to receive(:scope).with(scope) { rollbar_notifier }
+        expect(rollbar_notifier).to receive(:error).with(a_kind_of(RuntimeError), use_exception_level_filters: true)
+
         Timecop.freeze(Time.utc(2017, 6, 18, 1, 0) + CronoTrigger::Schedulable::DEFAULT_RETRY_INTERVAL) do
           aggregate_failures do
             notification1.update!(execute_lock: Time.now.to_i)
