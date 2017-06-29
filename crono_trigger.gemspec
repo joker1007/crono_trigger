@@ -29,7 +29,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "activerecord", ">= 4.2"
 
   spec.add_development_dependency "sqlite3"
-  spec.add_development_dependency "database_rewinder"
   spec.add_development_dependency "timecop"
   spec.add_development_dependency "rollbar"
   spec.add_development_dependency "bundler", "~> 1.14"
