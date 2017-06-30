@@ -344,6 +344,9 @@ RSpec.describe CronoTrigger::Schedulable do
         Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
           aggregate_failures do
             expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
+            expect(notification1.last_error_name).to be_nil
+            expect(notification1.last_error_reason).to be_nil
+            expect(notification1.last_error_time).to be_nil
             expect(Notification.results).to be_empty
 
             notification1.update!(execute_lock: Time.now.to_i)
@@ -355,6 +358,9 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.last_executed_at).to be_nil
             expect(notification1.execute_lock).to eq(0)
             expect(notification1.retry_count).to eq(1)
+            expect(notification1.last_error_name).to eq("RuntimeError")
+            expect(notification1.last_error_reason).to eq("error")
+            expect(notification1.last_error_time).to eq(Time.utc(2017, 6, 18, 1, 0))
             expect(Notification.results).to be_empty
           end
         end
