@@ -1,4 +1,6 @@
 # CronoTrigger
+[![Gem Version](https://badge.fury.io/rb/crono_trigger.svg)](https://badge.fury.io/rb/crono_trigger)
+[![Build Status](https://travis-ci.org/joker1007/crono_trigger.svg?branch=master)](https://travis-ci.org/joker1007/crono_trigger)
 
 Asynchronous Job Scheduler for Rails.
 
@@ -87,6 +89,7 @@ class MailNotification < ActiveRecord::Base
     throw :retry # break execution and retry task
     throw :abort # break execution and raise AbortExecution. AbortExecution is not retried
     throw :ok    # break execution and handle task as success
+    throw :ok_without_reset    # break execution and handle task as success but without schedule reseting and unlocking
   end
 end
 ```
