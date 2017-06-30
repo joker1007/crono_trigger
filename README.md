@@ -1,6 +1,7 @@
 # CronoTrigger
 [![Gem Version](https://badge.fury.io/rb/crono_trigger.svg)](https://badge.fury.io/rb/crono_trigger)
 [![Build Status](https://travis-ci.org/joker1007/crono_trigger.svg?branch=master)](https://travis-ci.org/joker1007/crono_trigger)
+[![codecov](https://codecov.io/gh/joker1007/crono_trigger/branch/master/graph/badge.svg)](https://codecov.io/gh/joker1007/crono_trigger)
 
 Asynchronous Job Scheduler for Rails.
 
