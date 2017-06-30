@@ -1,3 +1,11 @@
+if ENV["CI"]
+  require 'simplecov'
+  SimpleCov.start
+
+  require 'codecov'
+  SimpleCov.formatter = SimpleCov::Formatter::Codecov
+end
+
 require "rollbar"
 require "crono_trigger"
 require "serverengine"
