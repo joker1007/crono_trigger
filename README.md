@@ -137,6 +137,10 @@ Usage: crono_trigger [options] MODEL [MODEL..]
 You can rename some columns.
 ex. `crono_trigger_options[:next_execute_at_column_name] = "next_time"`
 
+## Rollbar integration
+This gem has rollbar plugin.
+If `crono_trigger/rollbar` is required, Add Rollbar logging process to `CronoTrigger.config.error_handlers`
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
