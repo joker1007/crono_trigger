@@ -199,6 +199,8 @@ module CronoTrigger
     end
 
     def validate_cron_format
+      return unless self[crono_trigger_column_name(:cron)]
+
       Chrono::NextTime.new(now: Time.current, source: self[crono_trigger_column_name(:cron)]).to_time
     rescue Chrono::Fields::Base::InvalidField
       self.errors.add(
