@@ -6,28 +6,28 @@ RSpec.describe CronoTrigger::PollingThread do
       name: "notification1",
       cron: "0,30 * * * *",
       started_at: Time.current,
-    )
+    ).tap(&:activate_schedule!)
   end
   let(:notification2) do
     Notification.create!(
       name: "notification2",
       cron: "10 * * * *",
       started_at: Time.current,
-    )
+    ).tap(&:activate_schedule!)
   end
   let(:notification3) do
     Notification.create!(
       name: "notification3",
       cron: "*/10 * * * *",
       started_at: Time.current,
-    )
+    ).tap(&:activate_schedule!)
   end
   let(:notification4) do
     Notification.create!(
       name: "notification4",
       cron: "*/10 * * * *",
       started_at: Time.current,
-    )
+    ).tap(&:activate_schedule!)
   end
 
   describe "#poll" do

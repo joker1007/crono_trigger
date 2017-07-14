@@ -93,6 +93,23 @@ class MailNotification < ActiveRecord::Base
     throw :ok_without_reset    # break execution and handle task as success but without schedule reseting and unlocking
   end
 end
+
+# one time schedule
+MailNotification.create(next_execute_at: Time.current.since(5.minutes))
+
+# cron schedule
+MailNotification.create(cron: "0 12 * * *").activate_schedule!
+# or
+MailNotification.new(cron: "0 12 * * *").activate_schedule!.save
+
+# if update cron column or timezone column
+# update next_execute_at automatically by before_update callback
+mail = MailNotification.create(cron: "0 12 * * *").activate_schedule!
+mail.next_execute_at # => next 12:00 with Time.zone
+mail.update(cron: "0 13 * * *")
+mail.next_execute_at # => next 13:00 with Time.zone
+mail.update(timezone: "Asia/Tokyo")
+mail.next_execute_at # => next 13:00 with Asia/Japan
 ```
 
 #### Run Worker

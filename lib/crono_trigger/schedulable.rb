@@ -46,7 +46,6 @@ module CronoTrigger
         rel
       end
 
-      before_create :ensure_next_execute_at
       before_update :update_next_execute_at_if_update_cron
 
       validate :validate_cron_format
@@ -110,6 +109,18 @@ module CronoTrigger
       retry_or_reset!(ex)
 
       raise
+    end
+
+    def activate_schedule!(at: Time.current)
+      time = calculate_next_execute_at || at
+
+      if new_record?
+        self[crono_trigger_column_name(:next_execute_at)] ||= time
+      else
+        unless self[crono_trigger_column_name(:next_execute_at)]
+          update_column(crono_trigger_column_name(:next_execute_at), time)
+        end
+      end
     end
 
     def retry!
@@ -177,10 +188,6 @@ module CronoTrigger
         now = tz ? now.in_time_zone(tz) : now
         Chrono::NextTime.new(now: now, source: self[crono_trigger_column_name(:cron)]).to_time
       end
-    end
-
-    def ensure_next_execute_at
-      self[crono_trigger_column_name(:next_execute_at)] ||= calculate_next_execute_at || Time.current
     end
 
     def update_next_execute_at_if_update_cron

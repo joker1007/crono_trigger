@@ -6,35 +6,35 @@ RSpec.describe CronoTrigger::Schedulable do
       name: "notification1",
       cron: "0,30 * * * *",
       started_at: Time.current,
-    )
+    ).tap(&:activate_schedule!)
   end
   let(:notification2) do
     Notification.create!(
       name: "notification2",
       cron: "10 * * * *",
       started_at: Time.current,
-    )
+    ).tap(&:activate_schedule!)
   end
   let(:notification3) do
     Notification.create!(
       name: "notification3",
       cron: "*/10 * * * *",
       started_at: Time.current,
-    )
+    ).tap(&:activate_schedule!)
   end
   let(:notification4) do
     Notification.create!(
       name: "notification4",
       cron: "*/10 * * * *",
       started_at: Time.current,
-    )
+    ).tap(&:activate_schedule!)
   end
   let(:notification5) do
-    Notification.create!(
+    Notification.new(
       name: "notification5",
       cron: "10 18 * * *",
       started_at: Time.current,
-    )
+    ).tap(&:activate_schedule!).tap(&:save!)
   end
   let(:notification6) do
     Notification.create!(
@@ -42,7 +42,7 @@ RSpec.describe CronoTrigger::Schedulable do
       cron: "10 18 * * *",
       timezone: "US/Pacific",
       started_at: Time.current,
-    )
+    ).tap(&:activate_schedule!)
   end
 
   describe "before_create callback" do
