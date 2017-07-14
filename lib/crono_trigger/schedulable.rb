@@ -47,6 +47,9 @@ module CronoTrigger
       end
 
       before_create :ensure_next_execute_at
+      before_update :update_next_execute_at_if_update_cron
+
+      validate :validate_cron_format
     end
 
     module ClassMethods
@@ -178,6 +181,23 @@ module CronoTrigger
 
     def ensure_next_execute_at
       self[crono_trigger_column_name(:next_execute_at)] ||= calculate_next_execute_at || Time.current
+    end
+
+    def update_next_execute_at_if_update_cron
+      if changes[crono_trigger_column_name(:cron)] || changes[crono_trigger_column_name(:timezone)]
+        if self[crono_trigger_column_name(:cron)]
+          self[crono_trigger_column_name(:next_execute_at)] = calculate_next_execute_at
+        end
+      end
+    end
+
+    def validate_cron_format
+      Chrono::NextTime.new(now: Time.current, source: self[crono_trigger_column_name(:cron)]).to_time
+    rescue Chrono::Fields::Base::InvalidField
+      self.errors.add(
+        crono_trigger_column_name(:cron).to_sym,
+        crono_trigger_options["invalid_field_error_message"] || "has invalid field"
+      )
     end
 
     def retry_limit

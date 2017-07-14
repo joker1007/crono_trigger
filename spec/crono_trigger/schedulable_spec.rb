@@ -53,6 +53,30 @@ RSpec.describe CronoTrigger::Schedulable do
     end
   end
 
+  describe "before_update callback" do
+    it "calculate_next_execute_at if update cron or timezone" do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+        expect(notification5.next_execute_at).to eq(Time.utc(2017, 6, 18, 18, 10))
+        notification5.update(cron: "45 18 * * *")
+        expect(notification5.next_execute_at).to eq(Time.utc(2017, 6, 18, 18, 45))
+        notification5.update(timezone: "Asia/Tokyo")
+        expect(notification5.next_execute_at).to eq(Time.utc(2017, 6, 18, 9, 45))
+      end
+    end
+  end
+
+  describe "validation" do
+    specify "cron_format validation" do
+      notification = Notification.new(
+        name: "notification1",
+        cron: "a,30 * * * *",
+        started_at: Time.current,
+      )
+      expect(notification).to be_invalid
+      expect(notification.errors[:cron]).to be_present
+    end
+  end
+
   describe ".executables" do
     it "fetch executable records" do
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
