@@ -185,8 +185,9 @@ module CronoTrigger
     def calculate_next_execute_at(now = Time.current)
       if self[crono_trigger_column_name(:cron)]
         tz = self[crono_trigger_column_name(:timezone)].try { |zn| TZInfo::Timezone.get(zn) }
-        now = tz ? now.in_time_zone(tz) : now
-        Chrono::NextTime.new(now: now, source: self[crono_trigger_column_name(:cron)]).to_time
+        base = [now, self[crono_trigger_column_name(:started_at)]].max
+        cron_now = tz ? base.in_time_zone(tz) : base
+        Chrono::NextTime.new(now: cron_now, source: self[crono_trigger_column_name(:cron)]).to_time
       end
     end
 
