@@ -28,7 +28,7 @@ class <%= migration_class_name %> < ActiveRecord::Migration<%= Rails::VERSION::M
       t.timestamps<%= Rails::VERSION::MAJOR >=5 ? " null: false" : "" %>
 <% end -%>
     end
-    <% attributes.select { |attribute| attribute.respond_to?(:token?) && attribute.token? }.each do |attribute| -%>
+<% attributes.select { |attribute| attribute.respond_to?(:token?) && attribute.token? }.each do |attribute| -%>
     add_index :<%= table_name %>, :<%= attribute.index_name %><%= attribute.inject_index_options %>, unique: true
 <% end -%>
 <% attributes_with_index.each do |attribute| -%>
