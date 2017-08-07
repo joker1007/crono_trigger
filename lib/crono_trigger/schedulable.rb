@@ -114,12 +114,21 @@ module CronoTrigger
     def activate_schedule!(at: Time.current)
       time = calculate_next_execute_at || at
 
-      if new_record?
-        self[crono_trigger_column_name(:next_execute_at)] ||= time
-      else
-        unless self[crono_trigger_column_name(:next_execute_at)]
-          update_column(crono_trigger_column_name(:next_execute_at), time)
+      attributes = {}
+      unless self[crono_trigger_column_name(:next_execute_at)]
+        attributes[crono_trigger_column_name(:next_execute_at)] = time
+      end
+
+      if self.class.column_names.include?(crono_trigger_column_name(:started_at))
+        unless self[crono_trigger_column_name(:started_at)]
+          attributes[crono_trigger_column_name(:started_at)] = time
         end
+      end
+
+      if new_record?
+        self.attributes = attributes
+      else
+        update_columns(attributes)
       end
     end
 
@@ -185,7 +194,7 @@ module CronoTrigger
     def calculate_next_execute_at(now = Time.current)
       if self[crono_trigger_column_name(:cron)]
         tz = self[crono_trigger_column_name(:timezone)].try { |zn| TZInfo::Timezone.get(zn) }
-        base = [now, self[crono_trigger_column_name(:started_at)]].max
+        base = [now, self[crono_trigger_column_name(:started_at)]].compact.max
         cron_now = tz ? base.in_time_zone(tz) : base
         Chrono::NextTime.new(now: cron_now, source: self[crono_trigger_column_name(:cron)]).to_time
       end
