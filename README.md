@@ -81,7 +81,7 @@ class MailNotification < ActiveRecord::Base
 
   # If execute method raise Exception, worker retry task until reach `retry_limit`
   # If `retry_count` reaches `retry_limit`, task schedule is reset.
-  # 
+  #
   # If record has cron value, reset process set next execution time by cron definition
   # If record has no cron value, reset process clear next execution time
   def execute
@@ -98,13 +98,13 @@ end
 MailNotification.create(next_execute_at: Time.current.since(5.minutes))
 
 # cron schedule
-MailNotification.create(cron: "0 12 * * *").activate_schedule!
+MailNotification.create(cron: "0 12 * * *", started_at: Time.current).activate_schedule!
 # or
-MailNotification.new(cron: "0 12 * * *").activate_schedule!.save
+MailNotification.new(cron: "0 12 * * *", started_at: Time.current).activate_schedule!.save
 
 # if update cron column or timezone column
 # update next_execute_at automatically by before_update callback
-mail = MailNotification.create(cron: "0 12 * * *").activate_schedule!
+mail = MailNotification.create(cron: "0 12 * * *", started_at: Time.current).activate_schedule!
 mail.next_execute_at # => next 12:00 with Time.zone
 mail.update(cron: "0 13 * * *")
 mail.next_execute_at # => next 13:00 with Time.zone
@@ -172,4 +172,3 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/joker1
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-
