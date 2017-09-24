@@ -14,7 +14,7 @@ opt_parser = OptionParser.new do |opts|
     options[:config] = cfg
   end
 
-  opts.on("-e", "--envornment=ENV", "Set environment name (ex. development, production)") do |env|
+  opts.on("-e", "--environment=ENV", "Set environment name (ex. development, production)") do |env|
     options[:env] = env
   end
 
