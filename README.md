@@ -122,7 +122,7 @@ $ crono_trigger MailNotification
 $ crono_trigger --help
 Usage: crono_trigger [options] MODEL [MODEL..]
     -f, --config-file=CONFIG         Config file (ex. ./crono_trigger.rb)
-    -e, --envornment=ENV             Set environment name (ex. development, production)
+    -e, --environment=ENV            Set environment name (ex. development, production)
     -p, --polling-thread=SIZE        Polling thread size (Default: 1)
     -i, --polling-interval=SECOND    Polling interval seconds (Default: 5)
     -c, --concurrency=SIZE           Execute thread size (Default: 25)
