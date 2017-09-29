@@ -9,11 +9,10 @@ RSpec.describe CronoTrigger::Schedulable do
     ).tap(&:activate_schedule!)
   end
   let(:notification2) do
-    Notification.create!(
+    Notification.new(
       name: "notification2",
       cron: "10 * * * *",
-      started_at: Time.current,
-    ).tap(&:activate_schedule!)
+    ).tap(&:activate_schedule!).tap(&:save!)
   end
   let(:notification3) do
     Notification.create!(
