@@ -15,10 +15,18 @@ require "timecop"
 
 Time.zone = "UTC"
 
-ActiveRecord::Base.establish_connection(
-  adapter: "sqlite3",
-  database: ":memory:"
-)
+case ENV["DB"]
+when "mysql"
+  ActiveRecord::Base.establish_connection(
+    adapter: "mysql2",
+    database: "test"
+  )
+else
+  ActiveRecord::Base.establish_connection(
+    adapter: "sqlite3",
+    database: ":memory:"
+  )
+end
 
 class Notification < ActiveRecord::Base
   include CronoTrigger::Schedulable
@@ -62,6 +70,7 @@ RSpec.configure do |config|
   end
 
   config.after(:each) do
+    ActiveRecord::Base.connection.verify!
     Notification.delete_all
     Notification.results.clear
   end

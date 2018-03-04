@@ -49,5 +49,31 @@ RSpec.describe CronoTrigger::PollingThread do
         }.to change { Notification.results }.from({}).to({notification2.id => "executed", notification3.id => "executed"})
       end
     end
+
+    if ENV["DB"] == "mysql"
+      context "when MySQL is restarted after poll is called" do
+        it "execute model#execute method without any errors" do
+          Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+            notification1
+            notification2
+            notification3
+            notification4.update(finished_at: Time.current + 1)
+          end
+
+          Timecop.freeze(Time.utc(2017, 6, 18, 1, 10)) do
+            expect {
+              th = Thread.start do
+                polling_thread.poll(Notification)
+                system(ENV["MYSQL_RESTART_COMMAND"])
+                expect {
+                  polling_thread.poll(Notification)
+                }.to_not raise_error
+              end
+              th.join
+            }.to change { Notification.results }.from({}).to({notification2.id => "executed", notification3.id => "executed"})
+          end
+        end
+      end
+    end
   end
 end
