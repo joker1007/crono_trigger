@@ -34,12 +34,9 @@ module CronoTrigger
       records = []
       primary_key_offset = nil
       begin
-        begin
-          conn = model.connection_pool.checkout
+        model.connection_pool.with_connection do
           records = model.executables_with_lock(primary_key_offset: primary_key_offset)
           primary_key_offset = records.last && records.last.id
-        ensure
-          model.connection_pool.checkin(conn)
         end
 
         records.each do |record|
