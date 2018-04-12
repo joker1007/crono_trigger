@@ -58,8 +58,14 @@ class Notification < ActiveRecord::Base
   end
 end
 
-ActiveRecord::Migration.verbose = false
-ActiveRecord::Migrator.migrate File.expand_path("../db/migrate", __FILE__), nil
+ActiveRecord::Migration.verbose = true
+
+if ActiveRecord.version >= Gem::Version.new("5.2.0")
+  ActiveRecord::Migrator.migrations_paths << File.expand_path("../db/migrate", __FILE__)
+  ActiveRecord::Base.connection.migration_context.migrate
+else
+  ActiveRecord::Migrator.migrate File.expand_path("../db/migrate", __FILE__), nil
+end
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
