@@ -33,7 +33,7 @@ module CronoTrigger
         rel = rel.where(t[crono_trigger_column_name(:finished_at)].gt(from).or(t[crono_trigger_column_name(:finished_at)].eq(nil)))  if column_names.include?(crono_trigger_column_name(:finished_at))
         rel = rel.where(t[primary_key].gt(primary_key_offset)) if primary_key_offset
 
-        rel = rel.order("#{quoted_table_name}.#{quoted_primary_key} ASC").limit(limit)
+        rel = rel.order(Arel.sql("#{quoted_table_name}.#{quoted_primary_key} ASC")).limit(limit)
 
         rel = executable_conditions.reduce(rel) do |merged, pr|
           if pr.arity == 0
