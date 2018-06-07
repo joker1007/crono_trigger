@@ -11,15 +11,18 @@ module CronoTrigger
       @thread = Thread.start do
         @logger.info "(polling-thread-#{Thread.current.object_id}) Start polling thread"
         until @stop_flag.wait_for_set(CronoTrigger.config.polling_interval)
-          begin
-            model = @model_queue.pop(true)
-            poll(model)
-          rescue ThreadError => e
-            @logger.error(e) unless e.message == "queue empty"
-          rescue => e
-            @logger.error(e)
-          ensure
-            @model_queue << model if model
+          CronoTrigger.reloader.call do
+            begin
+              model_name = @model_queue.pop(true)
+              model = model_name.classify.constantize
+              poll(model)
+            rescue ThreadError => e
+              @logger.error(e) unless e.message == "queue empty"
+            rescue => e
+              @logger.error(e)
+            ensure
+              @model_queue << model_name if model_name
+            end
           end
         end
       end
