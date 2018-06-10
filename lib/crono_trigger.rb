@@ -24,6 +24,16 @@ module CronoTrigger
     yield config
   end
 
+  def self.reloader
+    @reloader
+  end
+
+  def self.reloader=(reloader)
+    @reloader = reloader
+  end
+
+  self.reloader = proc { |&block| block.call }
+
   def self.load_config(yml, environment = nil)
     config = YAML.load_file(yml)[environment || "default"]
     config.each do |k, v|

@@ -56,6 +56,7 @@ opt_parser.parse!
 
 begin
   require "rails"
+  require "crono_trigger/railtie"
   require File.expand_path("./config/environment", Rails.root)
 rescue LoadError
 end

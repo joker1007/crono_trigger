@@ -6,8 +6,7 @@ module CronoTrigger
       @stop_flag = ServerEngine::BlockingFlag.new
       @model_queue = Queue.new
       CronoTrigger.config.model_names.each do |model_name|
-        model = model_name.classify.constantize
-        @model_queue << model
+        @model_queue << model_name
       end
       @executor = Concurrent::ThreadPoolExecutor.new(
         min_threads: 1,
