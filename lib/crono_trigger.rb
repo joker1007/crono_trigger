@@ -4,6 +4,7 @@ require "ostruct"
 require "socket"
 require "active_record"
 require "concurrent"
+require "crono_trigger/models/worker"
 require "crono_trigger/worker"
 require "crono_trigger/polling_thread"
 require "crono_trigger/schedulable"
@@ -41,6 +42,10 @@ module CronoTrigger
     config.each do |k, v|
       @config[k] = v
     end
+  end
+
+  def self.workers
+    CronoTrigger::Models::Worker.alive_workers
   end
 end
 
