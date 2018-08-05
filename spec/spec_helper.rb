@@ -22,10 +22,18 @@ when "mysql"
     database: "test"
   )
 else
+  db_path = File.join(__dir__, "testdb.sqlite3")
+  File.unlink(db_path) if File.exist?(db_path)
   ActiveRecord::Base.establish_connection(
     adapter: "sqlite3",
-    database: ":memory:"
+    database: File.join(__dir__, "testdb.sqlite3")
   )
+
+  RSpec.configure do |config|
+    config.after(:suite) do
+      File.unlink(db_path) if File.exist?(db_path)
+    end
+  end
 end
 
 class Notification < ActiveRecord::Base
@@ -66,6 +74,8 @@ if ActiveRecord.version >= Gem::Version.new("5.2.0")
 else
   ActiveRecord::Migrator.migrate File.expand_path("../db/migrate", __FILE__), nil
 end
+
+CronoTrigger.config.model_names = ["Notification"]
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
