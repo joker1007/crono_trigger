@@ -1,6 +1,11 @@
 require "spec_helper"
 
 RSpec.describe CronoTrigger::Worker do
+  before do
+    stub_const("CronoTrigger::Worker::HEARTBEAT_INTERVAL", 0.5)
+    stub_const("CronoTrigger::Worker::SIGNAL_FETCH_INTERVAL", 0.5)
+  end
+
   let(:worker) { Class.new { include CronoTrigger::Worker }.new }
   let(:worker_run) do
     unless worker.stopped?
@@ -38,8 +43,18 @@ RSpec.describe CronoTrigger::Worker do
       worker_run
       sleep 1
       expect(worker.polling_threads.size).to eq(1)
+      expect(worker.polling_threads[0]).not_to be_quiet
       Process.kill(:TSTP, Process.pid)
       sleep 1
+      expect(worker.polling_threads[0]).to be_quiet
+    end
+
+    it "handle signal from RDB operation" do
+      worker_run
+      sleep 1
+      expect(worker.polling_threads[0]).not_to be_quiet
+      CronoTrigger::Models::Signal.send_tstp(CronoTrigger.config.worker_id)
+      sleep 2
       expect(worker.polling_threads[0]).to be_quiet
     end
   end

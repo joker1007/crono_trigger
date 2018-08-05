@@ -13,6 +13,7 @@ module CronoTrigger
         where(arel_table[:sent_at].gteq(Time.current - IGNORE_THRESHOLD))
           .where(worker_id: CronoTrigger.config.worker_id)
           .where(received_at: nil)
+          .order(:sent_at)
       }
 
       class << self
@@ -34,6 +35,12 @@ module CronoTrigger
 
         def send_tstp(worker_id)
           send_signal("TSTP", worker_id)
+        end
+      end
+
+      def kill_me
+        if update(received_at: Time.current)
+          Process.kill(signal, Process.pid)
         end
       end
     end

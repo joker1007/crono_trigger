@@ -3,12 +3,14 @@ require "active_support/core_ext/string"
 module CronoTrigger
   module Worker
     HEARTBEAT_INTERVAL = 60
+    SIGNAL_FETCH_INTERVAL = 30
     attr_reader :polling_threads
 
     def initialize
       @crono_trigger_worker_id = CronoTrigger.config.worker_id
       @stop_flag = ServerEngine::BlockingFlag.new
       @heartbeat_stop_flag = ServerEngine::BlockingFlag.new
+      @signal_fetch_stop_flag = ServerEngine::BlockingFlag.new
       @model_queue = Queue.new
       @model_names = CronoTrigger.config.model_names || CronoTrigger::Schedulable.included_by
       @model_names.each do |model_name|
@@ -23,7 +25,8 @@ module CronoTrigger
     end
 
     def run
-      run_heartbeat_thread
+      @heartbeat_thread = run_heartbeat_thread
+      @signal_fetcn_thread = run_signal_fetch_thread
 
       polling_thread_count = CronoTrigger.config.polling_thread || [@model_names.size, Concurrent.processor_count].min
       # Assign local variable for Signal handling
@@ -42,6 +45,8 @@ module CronoTrigger
 
       @executor.shutdown
       @executor.wait_for_termination
+      @heartbeat_thread.join
+      @signal_fetcn_thread.join
 
       unregister
     end
@@ -49,6 +54,7 @@ module CronoTrigger
     def stop
       @stop_flag.set!
       @heartbeat_stop_flag.set!
+      @signal_fetch_stop_flag.set!
     end
 
     def stopped?
@@ -60,10 +66,16 @@ module CronoTrigger
     def run_heartbeat_thread
       heartbeat
       Thread.start do
-        loop do
-          until @heartbeat_stop_flag.wait_for_set(HEARTBEAT_INTERVAL)
-            heartbeat
-          end
+        until @heartbeat_stop_flag.wait_for_set(HEARTBEAT_INTERVAL)
+          heartbeat
+        end
+      end
+    end
+
+    def run_signal_fetch_thread
+      Thread.start do
+        until @signal_fetch_stop_flag.wait_for_set(SIGNAL_FETCH_INTERVAL)
+          handle_signal_from_rdb
         end
       end
     end
@@ -81,6 +93,13 @@ module CronoTrigger
     def unregister
       @logger.info("[worker_id:#{@crono_trigger_worker_id}] Unregister worker from database")
       CronoTrigger::Models::Worker.find_by(worker_id: @crono_trigger_worker_id)&.destroy
+    end
+
+    def handle_signal_from_rdb
+      CronoTrigger::Models::Signal.sent_to_me.take(1)[0]&.tap do |s|
+        @logger.info("[worker_id:#{@crono_trigger_worker_id}] Receive Signal #{s.signal} from database")
+        s.kill_me
+      end
     end
   end
 end
