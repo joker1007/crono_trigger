@@ -5,7 +5,8 @@ module CronoTrigger
     def initialize
       @stop_flag = ServerEngine::BlockingFlag.new
       @model_queue = Queue.new
-      CronoTrigger.config.model_names.each do |model_name|
+      @model_names = CronoTrigger.config.model_names || CronoTrigger::Schedulable.included_by
+      @model_names.each do |model_name|
         @model_queue << model_name
       end
       @executor = Concurrent::ThreadPoolExecutor.new(
@@ -16,7 +17,8 @@ module CronoTrigger
     end
 
     def run
-      polling_threads = CronoTrigger.config.polling_thread.times.map { PollingThread.new(@model_queue, @stop_flag, logger, @executor) }
+      polling_thread_count = CronoTrigger.config.polling_thread || [@model_names.size, Concurrent.processor_count].min
+      polling_threads = polling_thread_count.times.map { PollingThread.new(@model_queue, @stop_flag, logger, @executor) }
       polling_threads.each(&:run)
       polling_threads.each(&:join)
 

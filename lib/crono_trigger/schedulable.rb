@@ -11,12 +11,19 @@ module CronoTrigger
     DEFAULT_RETRY_INTERVAL = 4
     DEFAULT_EXECUTE_LOCK_TIMEOUT = 600
 
+    @included_by = []
+
+    def self.included_by
+      @included_by
+    end
+
     class AbortExecution < StandardError; end
 
     extend ActiveSupport::Concern
     include ActiveSupport::Callbacks
 
     included do
+      CronoTrigger::Schedulable.included_by << self
       class_attribute :crono_trigger_options, :executable_conditions
       self.crono_trigger_options ||= {}
       self.executable_conditions ||= []
