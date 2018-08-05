@@ -10,6 +10,10 @@ options = {
 opt_parser = OptionParser.new do |opts|
   opts.banner = "Usage: crono_trigger [options] MODEL [MODEL..]"
 
+  opts.on("-w", "--worker-id=ID", "Worker ID (default: First local ip address which is not loopback") do |id|
+    options[:worker_id] = id
+  end
+
   opts.on("-f", "--config-file=CONFIG", "Config file (ex. ./crono_trigger.rb)") do |cfg|
     options[:config] = cfg
   end
