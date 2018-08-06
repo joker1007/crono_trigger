@@ -8,6 +8,7 @@ if ActiveRecord.version < Gem::Version.new("5.0.0")
         t.datetime :last_executed_at
         t.string   :timezone
         t.integer  :execute_lock, limit: 8, default: 0, null: false
+        t.string   :locked_by
         t.datetime :started_at, null: false
         t.datetime :finished_at
         t.string :last_error_name
@@ -30,6 +31,7 @@ else
         t.datetime :last_executed_at
         t.string   :timezone
         t.integer  :execute_lock, limit: 8, default: 0, null: false
+        t.string   :locked_by
         t.datetime :started_at, null: false
         t.datetime :finished_at
         t.datetime :finished_at
