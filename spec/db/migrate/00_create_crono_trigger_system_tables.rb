@@ -6,6 +6,7 @@ if ActiveRecord.version < Gem::Version.new("5.0.0")
         t.integer  :current_executing_size, null: false
         t.integer  :current_queue_size, null: false
         t.string   :executor_status, null: false
+        t.string   :polling_model_names, null: false
         t.datetime :last_heartbeated_at, null: false
       end
 
@@ -29,6 +30,7 @@ else
         t.integer  :current_executing_size, null: false
         t.integer  :current_queue_size, null: false
         t.string   :executor_status, null: false
+        t.string   :polling_model_names, null: false
         t.datetime :last_heartbeated_at, null: false
       end
 
