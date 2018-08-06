@@ -12,7 +12,6 @@ module CronoTrigger
       @thread = Thread.start do
         @logger.info "(polling-thread-#{Thread.current.object_id}) Start polling thread"
         until @stop_flag.wait_for_set(CronoTrigger.config.polling_interval)
-          pp quiet?
           next if quiet?
 
           CronoTrigger.reloader.call do
