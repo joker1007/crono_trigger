@@ -4,6 +4,8 @@ module CronoTrigger
   module Worker
     HEARTBEAT_INTERVAL = 60
     SIGNAL_FETCH_INTERVAL = 30
+    EXECUTOR_SHUTDOWN_TIMELIMIT = 300
+    OTHER_THREAD_SHUTDOWN_TIMELIMIT = 120
     attr_reader :polling_threads
 
     def initialize
@@ -44,9 +46,9 @@ module CronoTrigger
       @polling_threads.each(&:join)
 
       @executor.shutdown
-      @executor.wait_for_termination
-      @heartbeat_thread.join
-      @signal_fetcn_thread.join
+      @executor.wait_for_termination(EXECUTOR_SHUTDOWN_TIMELIMIT)
+      @heartbeat_thread.join(OTHER_THREAD_SHUTDOWN_TIMELIMIT)
+      @signal_fetcn_thread.join(OTHER_THREAD_SHUTDOWN_TIMELIMIT)
 
       unregister
     end
@@ -59,6 +61,10 @@ module CronoTrigger
 
     def stopped?
       @stop_flag.set?
+    end
+
+    def quiet?
+      @polling_threads&.all?(&:quiet?)
     end
 
     private
@@ -82,12 +88,31 @@ module CronoTrigger
 
     def heartbeat
       worker_record = CronoTrigger::Models::Worker.find_or_initialize_by(worker_id: @crono_trigger_worker_id)
+      worker_record.max_thread_size = @executor.max_length
+      worker_record.current_executing_size = @executor.scheduled_task_count
+      worker_record.current_queue_size = @executor.queue_length
+      worker_record.executor_status = executor_status
       worker_record.last_heartbeated_at = Time.current
       @logger.info("[worker_id:#{@crono_trigger_worker_id}] Send heartbeat to database")
       worker_record.save
     rescue => ex
       p ex
       stop
+    end
+
+    def executor_status
+      case
+      when @executor.shutdown?
+        "shutdown"
+      when @executor.shuttingdown?
+        "shuttingdown"
+      when @executor.running?
+        if quiet?
+          "quiet"
+        else
+          "running"
+        end
+      end
     end
 
     def unregister

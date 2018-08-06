@@ -37,6 +37,11 @@ RSpec.describe CronoTrigger::Worker do
       alive_workers = CronoTrigger::Models::Worker.alive_workers.to_a
       expect(alive_workers.size).to eq(1)
       expect(alive_workers[0].worker_id).to eq(Socket.ip_address_list.detect { |info| !info.ipv4_loopback? && !info.ipv6_loopback? }.ip_address)
+      expect(alive_workers[0].max_thread_size).to eq(25)
+      expect(alive_workers[0].current_executing_size).to eq(0)
+      expect(alive_workers[0].current_queue_size).to eq(0)
+      expect(alive_workers[0].executor_status).to eq("running")
+      expect(alive_workers[0].last_heartbeated_at).to be_a(Time)
     end
 
     it "quiet polling thread when give signal TSTP" do
