@@ -11,7 +11,7 @@ module CronoTrigger
     set :views, proc { File.join(root, "views") }
 
     get "/" do
-      send_file "index.html"
+      erb :index
     end
 
     get "/workers:format?" do
@@ -22,7 +22,7 @@ module CronoTrigger
           records: @workers,
         }, mode: :compat)
       else
-        send_file File.join(settings.public_folder,  "index.html")
+        erb :index
       end
     end
 
@@ -51,7 +51,7 @@ module CronoTrigger
           records: @signals,
         }, mode: :compat)
       else
-        send_file File.join(settings.public_folder,  "index.html")
+        erb :index
       end
     end
 
@@ -71,7 +71,7 @@ module CronoTrigger
           models: @models,
         }, mode: :compat)
       else
-        send_file File.join(settings.public_folder,  "index.html")
+        erb :index
       end
     end
 
@@ -107,7 +107,7 @@ module CronoTrigger
           "Model Class is not found"
         end
       else
-        send_file File.join(settings.public_folder,  "index.html")
+        erb :index
       end
     end
   end
