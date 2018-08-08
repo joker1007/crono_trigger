@@ -14,16 +14,20 @@ module CronoTrigger
       erb :index
     end
 
-    get "/workers:format?" do
-      if params[:format] == ".json"
+    get "/workers.:format" do
+      if params[:format] == "json"
         content_type :json
         @workers = CronoTrigger::Models::Worker.alive_workers
         Oj.dump({
           records: @workers,
         }, mode: :compat)
       else
-        erb :index
+        raise "unknown format"
       end
+    end
+
+    get "/workers" do
+      erb :index
     end
 
     post "/signals" do
@@ -43,16 +47,20 @@ module CronoTrigger
       end
     end
 
-    get "/signals:format?" do
-      if params[:format] == ".json"
+    get "/signals.:format" do
+      if params[:format] == "json"
         content_type :json
         @signals = CronoTrigger::Models::Signal.order(sent_at: :desc).limit(30)
         Oj.dump({
           records: @signals,
         }, mode: :compat)
       else
-        erb :index
+        raise "unknown format"
       end
+    end
+
+    get "/signals" do
+      erb :index
     end
 
     get "/models/:name.:format" do
@@ -60,19 +68,23 @@ module CronoTrigger
     end
 
     get "/models/:name" do
-      models_handler
+      erb :index
     end
 
-    get "/models:format?" do
-      if params[:format] == ".json"
+    get "/models.:format" do
+      if params[:format] == "json"
         content_type :json
         @models = CronoTrigger::Schedulable.included_by.map(&:name).sort
         Oj.dump({
           models: @models,
         }, mode: :compat)
       else
-        erb :index
+        raise "unknown format"
       end
+    end
+
+    get "/models" do
+      erb :index
     end
 
     private
@@ -107,7 +119,7 @@ module CronoTrigger
           "Model Class is not found"
         end
       else
-        erb :index
+        raise "unknown format"
       end
     end
   end
