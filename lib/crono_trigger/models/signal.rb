@@ -38,9 +38,13 @@ module CronoTrigger
         end
       end
 
-      def kill_me
+      def kill_me(to_supervisor: true)
         if update(received_at: Time.current)
-          Process.kill(signal, Process.pid)
+          if to_supervisor && Process.ppid != 1
+            Process.kill(signal, Process.ppid)
+          else
+            Process.kill(signal, Process.pid)
+          end
         end
       end
     end

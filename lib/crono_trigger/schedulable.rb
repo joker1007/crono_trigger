@@ -30,11 +30,11 @@ module CronoTrigger
 
       define_model_callbacks :execute
 
-      scope :executables, ->(from: Time.current, primary_key_offset: nil, limit: 1000) do
+      scope :executables, ->(from: Time.current, primary_key_offset: nil, limit: 1000, including_locked: false) do
         t = arel_table
 
         rel = where(t[crono_trigger_column_name(:next_execute_at)].lteq(from))
-          .where(t[crono_trigger_column_name(:execute_lock)].lteq(from.to_i - execute_lock_timeout))
+        rel = rel.where(t[crono_trigger_column_name(:execute_lock)].lteq(from.to_i - execute_lock_timeout)) if including_locked
 
         rel = rel.where(t[crono_trigger_column_name(:started_at)].lteq(from)) if column_names.include?(crono_trigger_column_name(:started_at))
         rel = rel.where(t[crono_trigger_column_name(:finished_at)].gt(from).or(t[crono_trigger_column_name(:finished_at)].eq(nil)))  if column_names.include?(crono_trigger_column_name(:finished_at))

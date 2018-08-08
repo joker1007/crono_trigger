@@ -17,6 +17,7 @@ opt_parser = OptionParser.new do |o|
     loader = -> do
       begin
         require File.join(pwd, "config", "environment")
+        Rails.application.eager_load!
       rescue LoadError
         raise if pwd == "/"
         pwd = File.expand_path("..", pwd)
