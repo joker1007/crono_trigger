@@ -11,7 +11,7 @@ gemfiles = Dir.glob(File.join(pwd, "gemfiles", "*.gemfile")).map { |f| File.base
 
 namespace :js do
   task :clean do
-    rm_r(File.join(pwd, "web", "app", "build"))
+    rm_r(File.join(pwd, "web", "app", "build")) if File.exist?(File.join(pwd, "web", "app", "build"))
     rm_r(File.join(pwd, "web", "public"))
   end
 
