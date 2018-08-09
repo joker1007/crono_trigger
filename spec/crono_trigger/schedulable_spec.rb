@@ -121,7 +121,7 @@ RSpec.describe CronoTrigger::Schedulable do
   end
 
   describe ".executables_with_lock" do
-    it "fetch executable records with execute_lock update" do
+    it "fetch executable records with execute_lock update", aggregate_failures: true do
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
         notification1
         notification2
