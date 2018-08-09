@@ -53,7 +53,8 @@ interface ISchedulableRecordsProps {
   model_name: string
 }
 interface ISchedulableRecordsStates {
-  records: ISchedulableRecord[]
+  records: ISchedulableRecord[],
+  timeRangeMinute: number,
 }
 
 interface ISchedulableRecordProps {

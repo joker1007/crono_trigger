@@ -11,7 +11,7 @@ module CronoTrigger
     set :views, proc { File.join(root, "views") }
 
     get "/" do
-      erb :index
+      redirect to("/workers")
     end
 
     get "/workers.:format" do
@@ -100,37 +100,12 @@ module CronoTrigger
     end
 
     get "/models/:name.:format" do
-      models_handler
-    end
-
-    get "/models/:name" do
-      erb :index
-    end
-
-    get "/models.:format" do
-      if params[:format] == "json"
-        content_type :json
-        @models = CronoTrigger::Schedulable.included_by.map(&:name).sort
-        Oj.dump({
-          models: @models,
-        }, mode: :compat)
-      else
-        raise "unknown format"
-      end
-    end
-
-    get "/models" do
-      erb :index
-    end
-
-    private
-
-    def models_handler
       if params[:format] == "json"
         content_type :json
         model_class = CronoTrigger::Schedulable.included_by.find { |c| c.name == params[:name] }
         if model_class
-          @scheduled_records = model_class.executables(limit: 100, including_locked: true).reorder(next_execute_at: :desc)
+          after_minute = params[:after] ? Integer(params[:after]) : 10
+          @scheduled_records = model_class.executables(from: Time.now.since(after_minute.minutes), limit: 100, including_locked: true).reorder(next_execute_at: :desc)
           @scheduled_records.where!(locked_by: params[:worker_id]) if params[:worker_id]
           now = Time.now
           records = @scheduled_records.map do |r|
@@ -163,6 +138,26 @@ module CronoTrigger
       else
         raise "unknown format"
       end
+    end
+
+    get "/models/:name" do
+      erb :index
+    end
+
+    get "/models.:format" do
+      if params[:format] == "json"
+        content_type :json
+        @models = CronoTrigger::Schedulable.included_by.map(&:name).sort
+        Oj.dump({
+          models: @models,
+        }, mode: :compat)
+      else
+        raise "unknown format"
+      end
+    end
+
+    get "/models" do
+      erb :index
     end
   end
 end
