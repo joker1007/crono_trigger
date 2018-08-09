@@ -4,7 +4,9 @@ import TableCell from '@material-ui/core/TableCell';
 import TableRow from '@material-ui/core/TableRow';
 import * as React from 'react';
 
-import { IWorkerProps } from "./interfaces";
+import { IGlobalWindow, IWorkerProps } from "./interfaces";
+
+declare var window: IGlobalWindow;
 
 class Worker extends React.Component<IWorkerProps, any> {
   constructor(props: IWorkerProps) {
@@ -47,7 +49,7 @@ class Worker extends React.Component<IWorkerProps, any> {
 
   private handleQuietClick(event: any) {
     const worker = this.props.worker;
-    fetch("./signals", {
+    fetch(`${window.mountPath}/signals`, {
       body: JSON.stringify({"worker_id": worker.worker_id, "signal": "TSTP"}),
       headers: {"content-type": "application/json"},
       method: "POST"
@@ -66,7 +68,7 @@ class Worker extends React.Component<IWorkerProps, any> {
 
   private handleStopClick(event: any) {
     const worker = this.props.worker;
-    fetch("./signals", {
+    fetch(`${window.mountPath}/signals`, {
       body: JSON.stringify({"worker_id": worker.worker_id, "signal": "TERM"}),
       headers: {"content-type": "application/json"},
       method: "POST"

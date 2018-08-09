@@ -6,8 +6,10 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import * as React from 'react';
 
-import { IWorkersState } from "./interfaces";
+import { IGlobalWindow, IWorkersState } from "./interfaces";
 import Worker from "./Worker";
+
+declare var window: IGlobalWindow;
 
 class Workers extends React.Component<any, IWorkersState> {
   private fetchLoop: any;
@@ -37,7 +39,7 @@ class Workers extends React.Component<any, IWorkersState> {
 
   public fetchWorkers(): void {
     const that = this;
-    fetch("./workers.json")
+    fetch(`${window.mountPath}/workers.json`)
       .then((res) => res.json())
       .then((data) => {
         that.setState(data);

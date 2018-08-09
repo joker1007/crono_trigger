@@ -3,12 +3,9 @@ import * as ReactDOM from 'react-dom';
 import { BrowserRouter as Router } from "react-router-dom";
 import App from './App';
 import './index.css';
+import { IGlobalWindow } from './interfaces';
 
-interface IWindow {
-  mountPath: string
-}
-
-declare var window: IWindow
+declare var window: IGlobalWindow
 
 ReactDOM.render(
   <Router basename={window.mountPath || "/"}>

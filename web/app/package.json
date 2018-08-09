@@ -6,6 +6,7 @@
   "dependencies": {
     "@material-ui/core": "^1.4.3",
     "@material-ui/icons": "^2.0.1",
+    "classnames": "^2.2.6",
     "lodash.debounce": "^4.0.8",
     "react": "^16.4.2",
     "react-dom": "^16.4.2",
@@ -19,6 +20,7 @@
     "eject": "react-scripts-ts eject"
   },
   "devDependencies": {
+    "@types/classnames": "^2.2.6",
     "@types/jest": "^23.3.1",
     "@types/node": "^10.5.7",
     "@types/react": "^16.4.8",

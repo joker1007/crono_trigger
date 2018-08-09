@@ -7,6 +7,10 @@ import TableRow from '@material-ui/core/TableRow';
 import * as React from 'react';
 import { Link } from "react-router-dom";
 
+import { IGlobalWindow } from './interfaces';
+
+declare var window: IGlobalWindow
+
 interface IModelsState {
   models: string[]
 }
@@ -23,7 +27,7 @@ class Models extends React.Component<any, IModelsState> {
 
   public fetchModels(): void {
     const that = this;
-    fetch("./models.json")
+    fetch(`${window.mountPath}/models.json`)
       .then((res) => res.json())
       .then((data) => {
         that.setState(data);

@@ -6,8 +6,10 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import * as React from 'react';
 
-import { ISignalsState } from './interfaces';
+import { IGlobalWindow, ISignalsState } from './interfaces';
 import Signal from './Signal';
+
+declare var window: IGlobalWindow;
 
 class Signals extends React.Component<any, ISignalsState> {
   private fetchLoop: any;
@@ -37,7 +39,7 @@ class Signals extends React.Component<any, ISignalsState> {
 
   public fetchSignals(): void {
     const that = this;
-    fetch("./signals.json")
+    fetch(`${window.mountPath}/signals.json`)
       .then((res) => res.json())
       .then((data) => {
         that.setState(data);
