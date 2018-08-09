@@ -87,18 +87,20 @@ module CronoTrigger
     end
 
     def heartbeat
-      worker_record = CronoTrigger::Models::Worker.find_or_initialize_by(worker_id: @crono_trigger_worker_id)
-      worker_record.max_thread_size = @executor.max_length
-      worker_record.current_executing_size = @executor.scheduled_task_count
-      worker_record.current_queue_size = @executor.queue_length
-      worker_record.executor_status = executor_status
-      worker_record.polling_model_names = @model_names
-      worker_record.last_heartbeated_at = Time.current
-      @logger.info("[worker_id:#{@crono_trigger_worker_id}] Send heartbeat to database")
-      worker_record.save
-    rescue => ex
-      p ex
-      stop
+      CronoTrigger::Models::Worker.connection_pool.with_connection do
+        worker_record = CronoTrigger::Models::Worker.find_or_initialize_by(worker_id: @crono_trigger_worker_id)
+        worker_record.max_thread_size = @executor.max_length
+        worker_record.current_executing_size = @executor.scheduled_task_count
+        worker_record.current_queue_size = @executor.queue_length
+        worker_record.executor_status = executor_status
+        worker_record.polling_model_names = @model_names
+        worker_record.last_heartbeated_at = Time.current
+        @logger.info("[worker_id:#{@crono_trigger_worker_id}] Send heartbeat to database")
+        worker_record.save
+      rescue => ex
+        p ex
+        stop
+      end
     end
 
     def executor_status
@@ -118,13 +120,17 @@ module CronoTrigger
 
     def unregister
       @logger.info("[worker_id:#{@crono_trigger_worker_id}] Unregister worker from database")
-      CronoTrigger::Models::Worker.find_by(worker_id: @crono_trigger_worker_id)&.destroy
+      CronoTrigger::Models::Worker.connection_pool.with_connection do
+        CronoTrigger::Models::Worker.find_by(worker_id: @crono_trigger_worker_id)&.destroy
+      end
     end
 
     def handle_signal_from_rdb
-      CronoTrigger::Models::Signal.sent_to_me.take(1)[0]&.tap do |s|
-        @logger.info("[worker_id:#{@crono_trigger_worker_id}] Receive Signal #{s.signal} from database")
-        s.kill_me(to_supervisor: s.signal != "TSTP")
+      CronoTrigger::Models::Signal.connection_pool.with_connection do
+        CronoTrigger::Models::Signal.sent_to_me.take(1)[0]&.tap do |s|
+          @logger.info("[worker_id:#{@crono_trigger_worker_id}] Receive Signal #{s.signal} from database")
+          s.kill_me(to_supervisor: s.signal != "TSTP")
+        end
       end
     end
   end

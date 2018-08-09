@@ -95,6 +95,7 @@ module CronoTrigger
         model_class = CronoTrigger::Schedulable.included_by.find { |c| c.name == params[:name] }
         if model_class
           @scheduled_records = model_class.executables(limit: 100, including_locked: true).reorder(next_execute_at: :desc)
+          @scheduled_records.where!(locked_by: params[:worker_id]) if params[:worker_id]
           Oj.dump({
             records: @scheduled_records.map { |r|
               r.as_json(methods: [:crono_trigger_status], only: [
