@@ -1,12 +1,15 @@
 import Button from '@material-ui/core/Button';
 import Chip from '@material-ui/core/Chip';
 import Modal from '@material-ui/core/Modal';
+import Paper from '@material-ui/core/Paper';
 import Snackbar from '@material-ui/core/Snackbar';
 import TableRow from '@material-ui/core/TableRow';
 import Typography from '@material-ui/core/Typography';
 import classNames from 'classnames';
 import { format, parse } from 'date-fns';
 import * as React from 'react';
+import SyntaxHighligher from 'react-syntax-highlighter';
+import { dark } from 'react-syntax-highlighter/styles/hljs';
 
 import { IGlobalWindow, ISchedulableRecordProps } from './interfaces';
 import SchedulableRecordTableCell from './SchedulableRecordTableCell';
@@ -51,21 +54,28 @@ class SchedulableRecord extends React.Component<ISchedulableRecordProps, any> {
         <SchedulableRecordTableCell>{this.formatTime(record.last_error_time)}</SchedulableRecordTableCell>
         <SchedulableRecordTableCell>{record.retry_count}</SchedulableRecordTableCell>
         <SchedulableRecordTableCell>
-          <Button variant="contained" style={{"marginRight": "8px"}} onClick={this.handleUnlockClick}>Unlock</Button>
-          <Button variant="contained" style={{"marginRight": "8px"}} onClick={this.handleRetryClick}>Retry</Button>
-          <Button variant="contained" color="secondary" onClick={this.handleResetClick}>Reset</Button>
+          <Button variant="contained" style={{"marginRight": "8px"}} onClick={this.handleDetailClick}>Detail</Button>
 
           <Modal
             aria-labelledby={`schedulable-record-modal-title-${record.id}`}
             open={this.state.detailModalOpen}
             onClose={this.handleDetailModalClose}
+            style={{display: "flex", alignItems: "center", justifyContent: "center"}}
           >
-            <div className="schedulable-record-modal">
+            <Paper className="schedulable-record-modal" style={{width: "600px", padding: "8px"}}>
               <Typography variant="title" id={`schedulable-record-modal-title-${record.id}`}>
                 {this.props.model_name}: {record.id}
               </Typography>
-            </div>
+              <SyntaxHighligher language="json" style={dark}>
+                {JSON.stringify(record, null, "  ")}
+              </SyntaxHighligher>
+            </Paper>
           </Modal>
+        </SchedulableRecordTableCell>
+        <SchedulableRecordTableCell>
+          <Button variant="contained" style={{"marginRight": "8px"}} onClick={this.handleUnlockClick}>Unlock</Button>
+          <Button variant="contained" style={{"marginRight": "8px"}} onClick={this.handleRetryClick}>Retry</Button>
+          <Button variant="contained" color="secondary" onClick={this.handleResetClick}>Reset</Button>
 
           <Snackbar
             anchorOrigin={{vertical: "bottom", horizontal: "right"}}
@@ -114,11 +124,13 @@ class SchedulableRecord extends React.Component<ISchedulableRecordProps, any> {
       method: "POST"
     }).then(this.handleResponseStatus).then((res) => {
       this.setState({
+        ...this.state,
         notificationMessage: <span>Unlock id:{record.id}</span>,
         notificationOpen: true,
       })
     }).catch((err) => {
       this.setState({
+        ...this.state,
         notificationMessage: <span>Failed to unlock ({err.message})</span>,
         notificationOpen: true,
       })
@@ -175,6 +187,13 @@ class SchedulableRecord extends React.Component<ISchedulableRecordProps, any> {
     this.setState({
       ...this.state,
       notificationOpen: false,
+    })
+  }
+
+  private handleDetailClick = (ev: any) => {
+    this.setState({
+      ...this.state,
+      detailModalOpen: true,
     })
   }
 

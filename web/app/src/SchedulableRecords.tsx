@@ -86,7 +86,8 @@ class SchedulableRecords extends React.Component<ISchedulableRecordsProps, ISche
                 <SchedulableRecordTableCell>Locked By</SchedulableRecordTableCell>
                 <SchedulableRecordTableCell>Last Error Time</SchedulableRecordTableCell>
                 <SchedulableRecordTableCell>Retry Count</SchedulableRecordTableCell>
-                <SchedulableRecordTableCell>&nbsp;</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>Detail</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>Ops</SchedulableRecordTableCell>
               </TableRow>
             </TableHead>
             <TableBody>
