@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+
+require "optparse"
+require "crono_trigger/web"
+
+options = {
+  bind: "0.0.0.0",
+  port: 9292
+}
+
+opt_parser = OptionParser.new do |o|
+  o.on('-p', '--port=PORT', 'Set port number (Default: 9292)') { |port| options[:port] = port.to_i }
+  o.on('-b', '--bind=ADRESS', 'Set address to bind (Default: 0.0.0.0)') { |addr| options[:bind] = addr }
+  o.on('-s', '--server=SERVER', 'Set Rack server handler name') { |handler| options[:server] = handler }
+  o.on('--rails', 'Require rails environment') do
+    pwd = Dir.pwd
+    loader = -> do
+      begin
+        require File.join(pwd, "config", "environment")
+        Rails.application.eager_load!
+      rescue LoadError
+        raise if pwd == "/"
+        pwd = File.expand_path("..", pwd)
+        loader.call
+      end
+    end
+    loader.call
+  end
+end
+
+opt_parser.parse!
+
+CronoTrigger::Web.run!(options)

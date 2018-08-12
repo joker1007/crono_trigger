@@ -5,12 +5,15 @@ module CronoTrigger
       @stop_flag = stop_flag
       @logger = logger
       @executor = executor
+      @quiet = Concurrent::AtomicBoolean.new(false)
     end
 
     def run
       @thread = Thread.start do
         @logger.info "(polling-thread-#{Thread.current.object_id}) Start polling thread"
         until @stop_flag.wait_for_set(CronoTrigger.config.polling_interval)
+          next if quiet?
+
           CronoTrigger.reloader.call do
             begin
               model_name = @model_queue.pop(true)
@@ -30,6 +33,18 @@ module CronoTrigger
 
     def join
       @thread.join
+    end
+
+    def quiet
+      @quiet.make_true
+    end
+
+    def quiet?
+      @quiet.true?
+    end
+
+    def alive?
+      @thread.alive?
     end
 
     def poll(model)

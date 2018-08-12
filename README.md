@@ -25,6 +25,28 @@ Or install it yourself as:
 
     $ gem install crono_trigger
 
+## Update from v0.3.x
+
+### Create crono_trigger system tables
+```
+$ rails g crono_trigger:install # => create migrations
+$ rake db:migrate
+```
+
+### Add `locked_by:string` column to CronoTrigger::Schedulable model
+```
+$ rails g migration add_locked_by_column_to_your_model
+$ rake db:migrate
+```
+
+```ruby
+class AddLockedByColumnToYourModel < ActiveRecord::Migration[5.2]
+  def change
+    add_column :your_models, :locked_by, :string
+  end
+end
+```
+
 ## Usage
 
 #### Execute `crono_trigger:model` generator.

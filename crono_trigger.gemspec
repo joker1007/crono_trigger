@@ -26,6 +26,9 @@ Gem::Specification.new do |spec|
   spec.add_dependency "serverengine"
   spec.add_dependency "concurrent-ruby"
   spec.add_dependency "tzinfo"
+  spec.add_dependency "sinatra"
+  spec.add_dependency "rack-contrib"
+  spec.add_dependency "oj"
   spec.add_dependency "activerecord", ">= 4.2"
 
   spec.add_development_dependency "sqlite3"

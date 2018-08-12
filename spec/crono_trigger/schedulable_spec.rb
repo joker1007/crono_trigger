@@ -121,7 +121,7 @@ RSpec.describe CronoTrigger::Schedulable do
   end
 
   describe ".executables_with_lock" do
-    it "fetch executable records with execute_lock update" do
+    it "fetch executable records with execute_lock update", aggregate_failures: true do
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
         notification1
         notification2
@@ -435,8 +435,10 @@ RSpec.describe CronoTrigger::Schedulable do
   describe "#locking?" do
     it "return locking status as Boolean" do
       expect(notification1.locking?).to be_falsey
-      notification1.execute_lock = 1
-      expect(notification1.locking?).to be_truthy
+      locked_at = Time.utc(2017, 6, 18, 1, 0)
+      notification1.execute_lock = locked_at.to_i
+      expect(notification1.locking?(at: locked_at + Notification.execute_lock_timeout - 1)).to be_truthy
+      expect(notification1.locking?(at: locked_at + Notification.execute_lock_timeout)).to be_falsey
     end
   end
 
@@ -449,35 +451,13 @@ RSpec.describe CronoTrigger::Schedulable do
         expect(notification1.assume_executing?).to be_truthy
       end
 
-      Timecop.freeze(Time.utc(2017, 6, 18, 1, 10, 0)) do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 10, 0) - 1) do
         expect(notification1.assume_executing?).to be_truthy
       end
 
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 10, 1)) do
         expect(notification1.assume_executing?).to be_falsey
       end
-    end
-  end
-
-  describe "#assume_executing?" do
-    it "return locking status as Boolean" do
-      expect(notification1.idling?).to be_truthy
-
-      Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
-        notification1.execute_lock = Time.now.to_i
-        expect(notification1.idling?).to be_falsey
-      end
-
-      Timecop.freeze(Time.utc(2017, 6, 18, 1, 10, 0)) do
-        expect(notification1.idling?).to be_falsey
-      end
-
-      Timecop.freeze(Time.utc(2017, 6, 18, 1, 10, 1)) do
-        expect(notification1.idling?).to be_falsey
-      end
-
-      notification1.execute_lock = 0
-      expect(notification1.idling?).to be_truthy
     end
   end
 end

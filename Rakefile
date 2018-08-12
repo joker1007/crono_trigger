@@ -9,6 +9,23 @@ pwd = File.expand_path('../', __FILE__)
 
 gemfiles = Dir.glob(File.join(pwd, "gemfiles", "*.gemfile")).map { |f| File.basename(f, ".*") }
 
+namespace :js do
+  task :clean do
+    rm_r(File.join(pwd, "web", "app", "build")) if File.exist?(File.join(pwd, "web", "app", "build"))
+    rm_r(File.join(pwd, "web", "public"))
+  end
+
+  task build: [:clean] do
+    Dir.chdir(File.join(pwd, "web", "app"))
+    sh({"PUBLIC_URL" => "<%= URI.parse(url('/')).path.chop %>"}, "npm run build") do |ok, res|
+      raise "failed to build JS" unless ok
+
+      mv(File.join(pwd, "web", "app", "build"), File.join(pwd, "web", "public"))
+      mv(File.join(pwd, "web", "public", "index.html"), File.join(pwd, "web", "views", "index.erb"))
+    end
+  end
+end
+
 namespace :spec do
   gemfiles.each do |gemfile|
     desc "Run Tests by #{gemfile}.gemfile"

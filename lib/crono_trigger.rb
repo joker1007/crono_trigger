@@ -1,18 +1,22 @@
 require "crono_trigger/version"
 
 require "ostruct"
+require "socket"
 require "active_record"
 require "concurrent"
+require "crono_trigger/models/worker"
+require "crono_trigger/models/signal"
 require "crono_trigger/worker"
 require "crono_trigger/polling_thread"
 require "crono_trigger/schedulable"
 
 module CronoTrigger
   @config = OpenStruct.new(
-    polling_thread: 1,
+    worker_id: Socket.ip_address_list.detect { |info| !info.ipv4_loopback? && !info.ipv6_loopback? }.ip_address,
+    polling_thread: nil,
     polling_interval: 5,
     executor_thread: 25,
-    model_names: [],
+    model_names: nil,
     error_handlers: [],
   )
 
@@ -39,6 +43,10 @@ module CronoTrigger
     config.each do |k, v|
       @config[k] = v
     end
+  end
+
+  def self.workers
+    CronoTrigger::Models::Worker.alive_workers
   end
 end
 

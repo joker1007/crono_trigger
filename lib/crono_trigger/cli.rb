@@ -8,7 +8,11 @@ options = {
 }
 
 opt_parser = OptionParser.new do |opts|
-  opts.banner = "Usage: crono_trigger [options] MODEL [MODEL..]"
+  opts.banner = "Usage: crono_trigger [options] [MODEL..]\n  If MODEL is not given, Search classes including CronoTrigger::Schedulable module automatically."
+
+  opts.on("-w", "--worker-id=ID", "Worker ID (default: First local ip address which is not loopback") do |id|
+    options[:worker_id] = id
+  end
 
   opts.on("-f", "--config-file=CONFIG", "Config file (ex. ./crono_trigger.rb)") do |cfg|
     options[:config] = cfg
@@ -18,7 +22,7 @@ opt_parser = OptionParser.new do |opts|
     options[:env] = env
   end
 
-  opts.on("-p", "--polling-thread=SIZE", Integer, "Polling thread size (Default: 1)") do |i|
+  opts.on("-p", "--polling-thread=SIZE", Integer, "Polling thread size (Default: Min of (target model count or processor_count)") do |i|
     options[:polling_thread] = i
   end
 
@@ -67,7 +71,7 @@ CronoTrigger.load_config(options[:config], options[:env]) if options[:config]
   CronoTrigger.config[name] = options[name] if options[name]
 end
 
-CronoTrigger.config.model_names.concat(ARGV)
+CronoTrigger.config.model_names = ARGV
 
 se = ServerEngine.create(nil, CronoTrigger::Worker, {
   daemonize: options[:daemonize],
