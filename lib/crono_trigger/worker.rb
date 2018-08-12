@@ -40,6 +40,7 @@ module CronoTrigger
         st.trap(:TSTP) do
           @logger.info("[worker_id:#{@crono_trigger_worker_id}] Transit to quiet mode")
           polling_threads.each(&:quiet)
+          heartbeat
         end
       end
 
