@@ -1,12 +1,15 @@
 import Button from '@material-ui/core/Button';
 import Chip from '@material-ui/core/Chip';
+import Modal from '@material-ui/core/Modal';
 import Snackbar from '@material-ui/core/Snackbar';
-import TableCell from '@material-ui/core/TableCell';
 import TableRow from '@material-ui/core/TableRow';
+import Typography from '@material-ui/core/Typography';
 import classNames from 'classnames';
+import { format, parse } from 'date-fns';
 import * as React from 'react';
 
 import { IGlobalWindow, ISchedulableRecordProps } from './interfaces';
+import SchedulableRecordTableCell from './SchedulableRecordTableCell';
 
 declare var window: IGlobalWindow
 
@@ -21,6 +24,7 @@ class SchedulableRecord extends React.Component<ISchedulableRecordProps, any> {
     super(props)
 
     this.state = {
+      detailModalOpen: false,
       notificationMessage: <span />,
       notificationOpen: false,
     }
@@ -35,24 +39,33 @@ class SchedulableRecord extends React.Component<ISchedulableRecordProps, any> {
 
     return (
       <TableRow key={record.id} className={rowClassNames} style={this.rowStyle()}>
-        <TableCell><Chip label={record.crono_trigger_status} color={this.statusChipColors[record.crono_trigger_status]}/></TableCell>
-        <TableCell>{record.id}</TableCell>
-        <TableCell>{record.cron}</TableCell>
-        <TableCell>{record.next_execute_at}</TableCell>
-        <TableCell>{record.delay_sec}</TableCell>
-        <TableCell>{record.execute_lock}</TableCell>
-        <TableCell>{record.time_to_unlock}</TableCell>
-        <TableCell>{record.last_executed_at}</TableCell>
-        <TableCell>{record.timezone}</TableCell>
-        <TableCell>{record.locked_by}</TableCell>
-        <TableCell>{record.last_error_name}</TableCell>
-        <TableCell>{record.last_error_reason}</TableCell>
-        <TableCell>{record.last_error_time}</TableCell>
-        <TableCell>{record.retry_count}</TableCell>
-        <TableCell>
+        <SchedulableRecordTableCell><Chip label={record.crono_trigger_status} color={this.statusChipColors[record.crono_trigger_status]}/></SchedulableRecordTableCell>
+        <SchedulableRecordTableCell>{record.id}</SchedulableRecordTableCell>
+        <SchedulableRecordTableCell>{record.cron}</SchedulableRecordTableCell>
+        <SchedulableRecordTableCell>{this.formatTime(record.next_execute_at)}</SchedulableRecordTableCell>
+        <SchedulableRecordTableCell>{record.delay_sec}</SchedulableRecordTableCell>
+        <SchedulableRecordTableCell>{record.execute_lock}</SchedulableRecordTableCell>
+        <SchedulableRecordTableCell>{record.time_to_unlock}</SchedulableRecordTableCell>
+        <SchedulableRecordTableCell>{this.formatTime(record.last_executed_at)}</SchedulableRecordTableCell>
+        <SchedulableRecordTableCell>{record.locked_by}</SchedulableRecordTableCell>
+        <SchedulableRecordTableCell>{this.formatTime(record.last_error_time)}</SchedulableRecordTableCell>
+        <SchedulableRecordTableCell>{record.retry_count}</SchedulableRecordTableCell>
+        <SchedulableRecordTableCell>
           <Button variant="contained" style={{"marginRight": "8px"}} onClick={this.handleUnlockClick}>Unlock</Button>
           <Button variant="contained" style={{"marginRight": "8px"}} onClick={this.handleRetryClick}>Retry</Button>
           <Button variant="contained" color="secondary" onClick={this.handleResetClick}>Reset</Button>
+
+          <Modal
+            aria-labelledby={`schedulable-record-modal-title-${record.id}`}
+            open={this.state.detailModalOpen}
+            onClose={this.handleDetailModalClose}
+          >
+            <div className="schedulable-record-modal">
+              <Typography variant="title" id={`schedulable-record-modal-title-${record.id}`}>
+                {this.props.model_name}: {record.id}
+              </Typography>
+            </div>
+          </Modal>
 
           <Snackbar
             anchorOrigin={{vertical: "bottom", horizontal: "right"}}
@@ -61,9 +74,17 @@ class SchedulableRecord extends React.Component<ISchedulableRecordProps, any> {
             onClose={this.handleNotificationClose}
             message={this.state.notificationMessage}
           />
-        </TableCell>
+        </SchedulableRecordTableCell>
       </TableRow>
     )
+  }
+
+  private formatTime(iso8601: string | null): string {
+    if (iso8601 === null) {
+      return "";
+    }
+    const date = parse(iso8601);
+    return format(date, "YYYY/MM/DD (ddd) HH:mm:ss Z");
   }
 
   private isLate(): boolean {
@@ -154,6 +175,13 @@ class SchedulableRecord extends React.Component<ISchedulableRecordProps, any> {
     this.setState({
       ...this.state,
       notificationOpen: false,
+    })
+  }
+
+  private handleDetailModalClose = (ev: any) => {
+    this.setState({
+      ...this.state,
+      detailModalOpen: false,
     })
   }
 }

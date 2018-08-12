@@ -2,7 +2,6 @@ import FormControl from '@material-ui/core/FormControl';
 import Paper from '@material-ui/core/Paper';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import TextField from '@material-ui/core/TextField';
@@ -11,6 +10,7 @@ import * as React from 'react';
 
 import { IGlobalWindow, ISchedulableRecordsProps, ISchedulableRecordsStates } from './interfaces';
 import SchedulableRecord from './SchedulableRecord';
+import SchedulableRecordTableCell from './SchedulableRecordTableCell';
 
 declare var window: IGlobalWindow;
 
@@ -75,21 +75,18 @@ class SchedulableRecords extends React.Component<ISchedulableRecordsProps, ISche
           <Table className="models">
             <TableHead>
               <TableRow>
-                <TableCell>Status</TableCell>
-                <TableCell>ID</TableCell>
-                <TableCell>Cron</TableCell>
-                <TableCell>Next Execute At</TableCell>
-                <TableCell>Delay Sec</TableCell>
-                <TableCell>Execute Lock</TableCell>
-                <TableCell>Time To Unlock</TableCell>
-                <TableCell>Last Executed At</TableCell>
-                <TableCell>Timezone</TableCell>
-                <TableCell>Locked By</TableCell>
-                <TableCell>Last Error Name</TableCell>
-                <TableCell>Last Error Reason</TableCell>
-                <TableCell>Last Error Time</TableCell>
-                <TableCell>Retry Count</TableCell>
-                <TableCell>&nbsp;</TableCell>
+                <SchedulableRecordTableCell>Status</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>ID</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>Cron</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>Next Execute At</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>Delay Sec</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>Execute Lock</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>Time To Unlock</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>Last Executed At</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>Locked By</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>Last Error Time</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>Retry Count</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>&nbsp;</SchedulableRecordTableCell>
               </TableRow>
             </TableHead>
             <TableBody>
