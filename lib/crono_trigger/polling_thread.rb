@@ -50,11 +50,9 @@ module CronoTrigger
     def poll(model)
       @logger.debug "(polling-thread-#{Thread.current.object_id}) Poll #{model}"
       records = []
-      primary_key_offset = nil
       begin
         model.connection_pool.with_connection do
-          records = model.executables_with_lock(primary_key_offset: primary_key_offset)
-          primary_key_offset = records.last && records.last.id
+          records = model.executables_with_lock
         end
 
         records.each do |record|

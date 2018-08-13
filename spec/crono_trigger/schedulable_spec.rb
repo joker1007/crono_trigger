@@ -17,7 +17,7 @@ RSpec.describe CronoTrigger::Schedulable do
   let(:notification3) do
     Notification.create!(
       name: "notification3",
-      cron: "*/10 * * * *",
+      cron: "*/15 * * * *",
       started_at: Time.current,
     ).tap(&:activate_schedule!)
   end
@@ -93,7 +93,7 @@ RSpec.describe CronoTrigger::Schedulable do
         notification4.update(finished_at: Time.current + 1)
       end
 
-      Timecop.freeze(Time.utc(2017, 6, 18, 1, 10)) do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 15)) do
         expect(Notification.executables).to match_array([notification2, notification3])
       end
     end
@@ -129,7 +129,7 @@ RSpec.describe CronoTrigger::Schedulable do
         notification4.update(finished_at: Time.current + 1)
       end
 
-      Timecop.freeze(Time.utc(2017, 6, 18, 1, 10)) do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 15)) do
         records = Notification.executables_with_lock(limit: 1)
         aggregate_failures do
           expect(records).to match_array([notification2])
@@ -148,7 +148,7 @@ RSpec.describe CronoTrigger::Schedulable do
         end
       end
 
-      Timecop.freeze(Time.utc(2017, 6, 18, 1, 20)) do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 25)) do
         records = Notification.executables_with_lock(limit: 1)
         aggregate_failures do
           expect(records).to match_array([notification2])

@@ -30,7 +30,7 @@ module CronoTrigger
 
       define_model_callbacks :execute
 
-      scope :executables, ->(from: Time.current, primary_key_offset: nil, limit: 1000, including_locked: false) do
+      scope :executables, ->(from: Time.current, limit: CronoTrigger.config.fetch_records || 100, including_locked: false) do
         t = arel_table
 
         rel = where(t[crono_trigger_column_name(:next_execute_at)].lteq(from))
@@ -38,9 +38,8 @@ module CronoTrigger
 
         rel = rel.where(t[crono_trigger_column_name(:started_at)].lteq(from)) if column_names.include?(crono_trigger_column_name(:started_at))
         rel = rel.where(t[crono_trigger_column_name(:finished_at)].gt(from).or(t[crono_trigger_column_name(:finished_at)].eq(nil)))  if column_names.include?(crono_trigger_column_name(:finished_at))
-        rel = rel.where(t[primary_key].gt(primary_key_offset)) if primary_key_offset
 
-        rel = rel.order(Arel.sql("#{quoted_table_name}.#{quoted_primary_key} ASC")).limit(limit)
+        rel = rel.order(crono_trigger_column_name(:next_execute_at) => :asc).limit(limit)
 
         rel = executable_conditions.reduce(rel) do |merged, pr|
           if pr.arity == 0
@@ -59,10 +58,10 @@ module CronoTrigger
     end
 
     module ClassMethods
-      def executables_with_lock(primary_key_offset: nil, limit: 1000)
+      def executables_with_lock(limit: CronoTrigger.config.fetch_records || 100)
         records = nil
         transaction do
-          records = executables(primary_key_offset: primary_key_offset, limit: limit).lock.to_a
+          records = executables(limit: limit).lock.to_a
           unless records.empty?
             where(id: records).update_all(
               crono_trigger_column_name(:execute_lock) => Time.current.to_i,
