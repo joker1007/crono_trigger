@@ -50,24 +50,33 @@ module CronoTrigger
     def poll(model)
       @logger.debug "(polling-thread-#{Thread.current.object_id}) Poll #{model}"
       records = []
+      overflowed_records = []
+
       begin
         model.connection_pool.with_connection do
           records = model.executables_with_lock
         end
 
         records.each do |record|
-          @executor.post do
-            model.connection_pool.with_connection do
-              @logger.info "(executor-thread-#{Thread.current.object_id}) Execute #{record.class}-#{record.id}"
-              begin
-                record.do_execute
-              rescue Exception => e
-                @logger.error(e)
+          begin
+            @executor.post do
+              model.connection_pool.with_connection do
+                @logger.info "(executor-thread-#{Thread.current.object_id}) Execute #{record.class}-#{record.id}"
+                begin
+                  record.do_execute
+                rescue Exception => e
+                  @logger.error(e)
+                end
               end
             end
+          rescue Concurrent::RejectedExecutionError
+            overflowed_records << record
           end
         end
-      end while records.any?
+        model.connection_pool.with_connection do
+          model.where(id: overflowed_records).crono_trigger_unlock_all!
+        end
+      end while overflowed_records.empty? && records.any?
     end
   end
 end

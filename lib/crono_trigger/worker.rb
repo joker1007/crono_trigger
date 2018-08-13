@@ -21,6 +21,7 @@ module CronoTrigger
       @executor = Concurrent::ThreadPoolExecutor.new(
         min_threads: 1,
         max_threads: CronoTrigger.config.executor_thread,
+        max_queue: CronoTrigger.config.executor_thread,
       )
       @logger = Logger.new(STDOUT) unless @logger
       ActiveRecord::Base.logger = @logger

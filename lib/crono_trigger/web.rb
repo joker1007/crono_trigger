@@ -66,7 +66,7 @@ module CronoTrigger
     post "/models/:name/:id/unlock" do
       model_class = CronoTrigger::Schedulable.included_by.find { |c| c.name == params[:name] }
       if model_class
-        model_class.find(params[:id]).update_columns(execute_lock: 0, locked_by: nil)
+        model_class.find(params[:id]).crono_trigger_unlock!
         status 200
         body ""
       else

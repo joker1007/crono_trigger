@@ -50,6 +50,30 @@ RSpec.describe CronoTrigger::PollingThread do
       end
     end
 
+    context "overflow executor queue size" do
+      let(:executor) { Concurrent::ThreadPoolExecutor.new(max_threads: 1, max_queue: 1) }
+
+      it "execute model#execute method" do
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          notification1
+          notification2
+          notification3
+          notification4.update(finished_at: Time.current + 1)
+        end
+
+        expect(Notification).to receive(:crono_trigger_unlock_all!).once.and_call_original
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 30)) do
+          expect(Notification.executables).to match_array([notification1, notification2, notification3])
+          expect {
+            polling_thread.poll(Notification)
+            executor.shutdown
+            executor.wait_for_termination
+          }.to change { Notification.results }.from({}).to({notification2.id => "executed", notification3.id => "executed"})
+          expect(notification1.reload.execute_lock).to eq(0)
+        end
+      end
+    end
+
     if ENV["DB"] == "mysql"
       context "when MySQL is restarted after poll is called" do
         it "execute model#execute method without any errors" do

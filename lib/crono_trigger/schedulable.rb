@@ -11,6 +11,8 @@ module CronoTrigger
     DEFAULT_RETRY_INTERVAL = 4
     DEFAULT_EXECUTE_LOCK_TIMEOUT = 600
 
+    class NoRestrictedUnlockError < StandardError; end
+
     @included_by = []
 
     def self.included_by
@@ -78,6 +80,18 @@ module CronoTrigger
 
       def execute_lock_timeout
         (crono_trigger_options[:execute_lock_timeout] || DEFAULT_EXECUTE_LOCK_TIMEOUT)
+      end
+
+      def crono_trigger_unlock_all!
+        wheres = all.where_values_hash
+        if wheres.empty?
+          raise NoRestrictedUnlockError, "Need `where` filter at least one, because this method is danger"
+        else
+          update_all(
+            crono_trigger_column_name(:execute_lock) => 0,
+            crono_trigger_column_name(:locked_by) => nil,
+          )
+        end
       end
 
       private
@@ -177,6 +191,13 @@ module CronoTrigger
       end
 
       update_columns(attributes)
+    end
+
+    def crono_trigger_unlock!
+      update_columns(
+        crono_trigger_column_name(:execute_lock) => 0,
+        crono_trigger_column_name(:locked_by) => nil,
+      )
     end
 
     def crono_trigger_status

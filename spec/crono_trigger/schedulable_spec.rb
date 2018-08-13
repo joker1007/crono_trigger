@@ -164,6 +164,31 @@ RSpec.describe CronoTrigger::Schedulable do
     end
   end
 
+  describe ".crono_trigger_unlock_all!" do
+    it "unlock all records" do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+        notification1.update_columns(execute_lock: Time.current.to_i, locked_by: "me")
+        notification2.update_columns(execute_lock: Time.current.to_i, locked_by: "me")
+        notification3.update_columns(execute_lock: Time.current.to_i, locked_by: "me")
+      end
+
+      Notification.where(id: [notification1, notification2]).crono_trigger_unlock_all!
+      expect(notification1.reload.execute_lock).to eq(0)
+      expect(notification2.reload.execute_lock).to eq(0)
+      expect(notification3.reload.execute_lock).not_to eq(0)
+    end
+
+    it "raise NoRestrictedUnlockError, unless where filter" do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+        notification1.update_columns(execute_lock: Time.current.to_i, locked_by: "me")
+        notification2.update_columns(execute_lock: Time.current.to_i, locked_by: "me")
+        notification3.update_columns(execute_lock: Time.current.to_i, locked_by: "me")
+      end
+
+      expect { Notification.crono_trigger_unlock_all! }.to raise_error(CronoTrigger::Schedulable::NoRestrictedUnlockError)
+    end
+  end
+
   describe "#calculate_next_execute_at" do
     it "consider timezone" do
       Timecop.freeze(Time.utc(2017, 6, 18, 17, 0)) do
