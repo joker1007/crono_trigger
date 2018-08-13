@@ -176,6 +176,24 @@ Usage: crono_trigger [options] MODEL [MODEL..]
 You can rename some columns.
 ex. `crono_trigger_options[:next_execute_at_column_name] = "next_time"`
 
+## Admin Web
+
+![screenshots/crono_trigger_web.jpg](screenshots/crono_trigger_web.jpg)
+
+### Standalone mode
+
+```
+$ crono_trigger-web --rails
+```
+
+### Mount as Rack app
+
+```ruby
+# config/routes.rb
+require "crono_trigger/web"
+mount CronoTrigger::Web => '/crono_trigger'
+```
+
 ## Rollbar integration
 This gem has rollbar plugin.
 If `crono_trigger/rollbar` is required, Add Rollbar logging process to `CronoTrigger.config.error_handlers`
