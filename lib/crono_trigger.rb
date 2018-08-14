@@ -16,7 +16,6 @@ module CronoTrigger
     polling_thread: nil,
     polling_interval: 5,
     executor_thread: 25,
-    fetch_records: 100,
     model_names: nil,
     error_handlers: [],
   )

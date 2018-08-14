@@ -30,10 +30,6 @@ opt_parser = OptionParser.new do |opts|
     options[:polling_interval] = i
   end
 
-  opts.on("--fetch-records=COUNT", Integer, "Limit size of fetching schedulable record (Default: 100)") do |i|
-    options[:fetch_records] = i
-  end
-
   opts.on("-c", "--concurrency=SIZE", Integer, "Execute thread size (Default: 25)") do |i|
     options[:execute_thread] = i
   end

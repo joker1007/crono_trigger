@@ -32,7 +32,7 @@ module CronoTrigger
 
       define_model_callbacks :execute
 
-      scope :executables, ->(from: Time.current, limit: CronoTrigger.config.fetch_records || 100, including_locked: false) do
+      scope :executables, ->(from: Time.current, limit: CronoTrigger.config.executor_thread * 3 || 100, including_locked: false) do
         t = arel_table
 
         rel = where(t[crono_trigger_column_name(:next_execute_at)].lteq(from))
@@ -60,7 +60,7 @@ module CronoTrigger
     end
 
     module ClassMethods
-      def executables_with_lock(limit: CronoTrigger.config.fetch_records || 100)
+      def executables_with_lock(limit: CronoTrigger.config.executor_thread * 3 || 100)
         records = nil
         transaction do
           records = executables(limit: limit).lock.to_a
