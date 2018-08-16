@@ -23,6 +23,7 @@ module CronoTrigger
         max_threads: CronoTrigger.config.executor_thread,
         max_queue: CronoTrigger.config.executor_thread * 2,
       )
+      @execution_counter = Concurrent::AtomicFixnum.new
       @logger = Logger.new(STDOUT) unless @logger
       ActiveRecord::Base.logger = @logger
     end
@@ -33,7 +34,7 @@ module CronoTrigger
 
       polling_thread_count = CronoTrigger.config.polling_thread || [@model_names.size, Concurrent.processor_count].min
       # Assign local variable for Signal handling
-      polling_threads = polling_thread_count.times.map { PollingThread.new(@model_queue, @stop_flag, @logger, @executor) }
+      polling_threads = polling_thread_count.times.map { PollingThread.new(@model_queue, @stop_flag, @logger, @executor, @execution_counter) }
       @polling_threads = polling_threads
       @polling_threads.each(&:run)
 
@@ -94,7 +95,7 @@ module CronoTrigger
           worker_record = CronoTrigger::Models::Worker.find_or_initialize_by(worker_id: @crono_trigger_worker_id)
           worker_record.max_thread_size = @executor.max_length
           worker_record.current_executing_size = @executor.scheduled_task_count
-          worker_record.current_queue_size = @executor.queue_length
+          worker_record.current_queue_size = @execution_counter.value
           worker_record.executor_status = executor_status
           worker_record.polling_model_names = @model_names
           worker_record.last_heartbeated_at = Time.current

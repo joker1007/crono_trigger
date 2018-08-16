@@ -1,10 +1,11 @@
 module CronoTrigger
   class PollingThread
-    def initialize(model_queue, stop_flag, logger, executor)
+    def initialize(model_queue, stop_flag, logger, executor, execution_counter)
       @model_queue = model_queue
       @stop_flag = stop_flag
       @logger = logger
       @executor = executor
+      @execution_counter = execution_counter
       @quiet = Concurrent::AtomicBoolean.new(false)
     end
 
@@ -60,13 +61,18 @@ module CronoTrigger
         records.each do |record|
           begin
             @executor.post do
-              model.connection_pool.with_connection do
-                @logger.info "(executor-thread-#{Thread.current.object_id}) Execute #{record.class}-#{record.id}"
-                begin
-                  record.do_execute
-                rescue Exception => e
-                  @logger.error(e)
+              @execution_counter.increment
+              begin
+                model.connection_pool.with_connection do
+                  @logger.info "(executor-thread-#{Thread.current.object_id}) Execute #{record.class}-#{record.id}"
+                  begin
+                    record.do_execute
+                  rescue Exception => e
+                    @logger.error(e)
+                  end
                 end
+              ensure
+                @execution_counter.decrement
               end
             end
           rescue Concurrent::RejectedExecutionError

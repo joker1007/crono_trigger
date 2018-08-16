@@ -31,7 +31,7 @@ RSpec.describe CronoTrigger::PollingThread do
   end
 
   describe "#poll" do
-    subject(:polling_thread) { CronoTrigger::PollingThread.new(Queue.new, ServerEngine::BlockingFlag.new, Logger.new($stdout), executor) }
+    subject(:polling_thread) { CronoTrigger::PollingThread.new(Queue.new, ServerEngine::BlockingFlag.new, Logger.new($stdout), executor, Concurrent::AtomicFixnum.new) }
 
     let(:executor) { Concurrent::ImmediateExecutor.new }
 
