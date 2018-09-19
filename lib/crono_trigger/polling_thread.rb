@@ -51,7 +51,7 @@ module CronoTrigger
     def poll(model)
       @logger.debug "(polling-thread-#{Thread.current.object_id}) Poll #{model}"
       records = []
-      overflowed_records = []
+      overflowed_record_ids = []
 
       begin
         model.connection_pool.with_connection do
@@ -76,13 +76,20 @@ module CronoTrigger
               end
             end
           rescue Concurrent::RejectedExecutionError
-            overflowed_records << record
+            overflowed_record_ids << record.id
           end
         end
-        model.connection_pool.with_connection do
-          model.where(id: overflowed_records).crono_trigger_unlock_all!
-        end
-      end while overflowed_records.empty? && records.any?
+        unlock_overflowed_records(model, overflowed_record_ids)
+      end while overflowed_record_ids.empty? && records.any?
+    end
+
+    private def unlock_overflowed_records(model, overflowed_record_ids)
+      model.connection_pool.with_connection do
+        model.where(id: overflowed_record_ids).crono_trigger_unlock_all!
+      end
+    rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::LockWaitTimeout, ActiveRecord::StatementTimeout, ActiveRecord::Deadlocked
+      sleep 1
+      retry
     end
   end
 end
