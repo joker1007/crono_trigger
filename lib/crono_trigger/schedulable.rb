@@ -30,7 +30,7 @@ module CronoTrigger
       self.crono_trigger_options ||= {}
       self.executable_conditions ||= []
 
-      define_model_callbacks :execute
+      define_model_callbacks :execute, :retry
 
       scope :executables, ->(from: Time.current, limit: CronoTrigger.config.executor_thread * 3 || 100, including_locked: false) do
         t = arel_table
@@ -156,21 +156,23 @@ module CronoTrigger
     end
 
     def retry!
-      logger.info "Retry #{self.class}-#{id}" if logger
+      run_callbacks :retry do
+        logger.info "Retry #{self.class}-#{id}" if logger
 
-      now = Time.current
-      wait = crono_trigger_options[:exponential_backoff] ? retry_interval * [2 * (retry_count - 1), 1].max : retry_interval
-      attributes = {
-        crono_trigger_column_name(:next_execute_at) => now + wait,
-        crono_trigger_column_name(:execute_lock) => 0,
-        crono_trigger_column_name(:locked_by) => nil,
-      }
+        now = Time.current
+        wait = crono_trigger_options[:exponential_backoff] ? retry_interval * [2 * (retry_count - 1), 1].max : retry_interval
+        attributes = {
+          crono_trigger_column_name(:next_execute_at) => now + wait,
+          crono_trigger_column_name(:execute_lock) => 0,
+          crono_trigger_column_name(:locked_by) => nil,
+        }
 
-      if self.class.column_names.include?("retry_count")
-        attributes.merge!(retry_count: retry_count.to_i + 1)
+        if self.class.column_names.include?("retry_count")
+          attributes.merge!(retry_count: retry_count.to_i + 1)
+        end
+
+        update_columns(attributes)
       end
-
-      update_columns(attributes)
     end
 
     def reset!(update_last_executed_at = true)
