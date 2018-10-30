@@ -38,6 +38,15 @@ end
 
 class Notification < ActiveRecord::Base
   include CronoTrigger::Schedulable
+  attr_accessor :execute_callback, :retry_callback
+
+  before_execute do |record|
+    record.execute_callback = :before
+  end
+
+  after_retry do |record|
+    record.retry_callback = :after
+  end
 
   self.crono_trigger_options = {
     retry_limit: 1,

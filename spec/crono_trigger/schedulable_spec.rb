@@ -222,7 +222,9 @@ RSpec.describe CronoTrigger::Schedulable do
           expect(Notification.results).to be_empty
           expect(notification1).to receive(:after)
 
-          notification1.do_execute
+          expect {
+            notification1.do_execute
+          }.to change { notification1.execute_callback }.from(nil).to(:before)
 
           notification1.reload
 
@@ -312,7 +314,9 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
             expect(Notification.results).to be_empty
 
-            notification1.do_execute
+            expect {
+              notification1.do_execute
+            }.to change { notification1.retry_callback }.from(nil).to(:after)
 
             notification1.reload
 
