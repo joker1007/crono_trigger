@@ -98,8 +98,9 @@ class MailNotification < ActiveRecord::Base
     execute_lock_timeout: 300,
   }
 
-  # `execute` callback is defined
+  # `execute`, `retry` callback is defined
   # can use `before_execute`, `after_execute`, `around_execute`
+  # `before_retry`, `after_retry`, `around_retry`
 
   # If execute method raise Exception, worker retry task until reach `retry_limit`
   # If `retry_count` reaches `retry_limit`, task schedule is reset.
