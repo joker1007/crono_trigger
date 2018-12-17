@@ -178,21 +178,23 @@ module CronoTrigger
     def reset!(update_last_executed_at = true)
       logger.info "Reset execution schedule #{self.class}-#{id}" if logger
 
-      attributes = {
-        crono_trigger_column_name(:next_execute_at) => calculate_next_execute_at,
-        crono_trigger_column_name(:execute_lock) => 0,
-        crono_trigger_column_name(:locked_by) => nil,
-      }
+      with_lock do
+        attributes = {
+          crono_trigger_column_name(:next_execute_at) => calculate_next_execute_at,
+          crono_trigger_column_name(:execute_lock) => 0,
+          crono_trigger_column_name(:locked_by) => nil,
+        }
 
-      if update_last_executed_at && self.class.column_names.include?(crono_trigger_column_name(:last_executed_at))
-        attributes.merge!(crono_trigger_column_name(:last_executed_at) => Time.current)
+        if update_last_executed_at && self.class.column_names.include?(crono_trigger_column_name(:last_executed_at))
+          attributes.merge!(crono_trigger_column_name(:last_executed_at) => Time.current)
+        end
+
+        if self.class.column_names.include?("retry_count")
+          attributes.merge!(retry_count: 0)
+        end
+
+        update_columns(attributes)
       end
-
-      if self.class.column_names.include?("retry_count")
-        attributes.merge!(retry_count: 0)
-      end
-
-      update_columns(attributes)
     end
 
     def crono_trigger_unlock!
