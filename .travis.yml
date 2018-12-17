@@ -12,3 +12,5 @@ before_install:
 env:
   - DB=sqlite
   - DB=mysql MYSQL_RESTART_COMMAND="sudo service mysql restart"
+  - NO_TIMESTAMP=false
+  - NO_TIMESTAMP=true
