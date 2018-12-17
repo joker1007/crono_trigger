@@ -85,7 +85,9 @@ module CronoTrigger
 
     private def unlock_overflowed_records(model, overflowed_record_ids)
       model.connection_pool.with_connection do
-        model.where(id: overflowed_record_ids).crono_trigger_unlock_all!
+        unless overflowed_record_ids.empty?
+          model.where(id: overflowed_record_ids).crono_trigger_unlock_all!
+        end
       end
     rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::LockWaitTimeout, ActiveRecord::StatementTimeout, ActiveRecord::Deadlocked
       sleep 1

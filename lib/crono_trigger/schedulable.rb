@@ -36,7 +36,7 @@ module CronoTrigger
         t = arel_table
 
         rel = where(t[crono_trigger_column_name(:next_execute_at)].lteq(from))
-        rel = rel.where(t[crono_trigger_column_name(:execute_lock)].lteq(from.to_i - execute_lock_timeout)) unless including_locked
+        rel = rel.where(t[crono_trigger_column_name(:execute_lock)].lt(from.to_i - execute_lock_timeout)) unless including_locked
 
         rel = rel.where(t[crono_trigger_column_name(:started_at)].lteq(from)) if column_names.include?(crono_trigger_column_name(:started_at))
         rel = rel.where(t[crono_trigger_column_name(:finished_at)].gt(from).or(t[crono_trigger_column_name(:finished_at)].eq(nil)))  if column_names.include?(crono_trigger_column_name(:finished_at))
@@ -61,17 +61,21 @@ module CronoTrigger
 
     module ClassMethods
       def executables_with_lock(limit: CronoTrigger.config.executor_thread * 3 || 100)
-        records = nil
-        transaction do
-          records = executables(limit: limit).lock.to_a
-          unless records.empty?
-            where(id: records).update_all(
-              crono_trigger_column_name(:execute_lock) => Time.current.to_i,
-              crono_trigger_column_name(:locked_by) => CronoTrigger.config.worker_id
-            )
+        ids = executables(limit: limit).pluck(:id)
+        records = []
+        ids.each do |id|
+          transaction do
+            r = all.lock.find(id)
+            unless r.locking?
+              r.update_columns(
+                crono_trigger_column_name(:execute_lock) => Time.current.to_i,
+                crono_trigger_column_name(:locked_by) => CronoTrigger.config.worker_id
+              )
+              records << r
+            end
           end
-          records
         end
+        records
       end
 
       def crono_trigger_column_name(name)
@@ -180,26 +184,24 @@ module CronoTrigger
     def reset!(update_last_executed_at = true)
       logger.info "Reset execution schedule #{self.class}-#{id}" if logger
 
-      with_lock do
-        attributes = {
-          crono_trigger_column_name(:next_execute_at) => calculate_next_execute_at,
-          crono_trigger_column_name(:execute_lock) => 0,
-          crono_trigger_column_name(:locked_by) => nil,
-        }
+      attributes = {
+        crono_trigger_column_name(:next_execute_at) => calculate_next_execute_at,
+        crono_trigger_column_name(:execute_lock) => 0,
+        crono_trigger_column_name(:locked_by) => nil,
+      }
 
-        now = Time.current
+      now = Time.current
 
-        if update_last_executed_at && self.class.column_names.include?(crono_trigger_column_name(:last_executed_at))
-          attributes.merge!(crono_trigger_column_name(:last_executed_at) => now)
-        end
-
-        if self.class.column_names.include?("retry_count")
-          attributes.merge!(retry_count: 0)
-        end
-
-        merge_updated_at_for_crono_trigger!(attributes, now)
-        update_columns(attributes)
+      if update_last_executed_at && self.class.column_names.include?(crono_trigger_column_name(:last_executed_at))
+        attributes.merge!(crono_trigger_column_name(:last_executed_at) => now)
       end
+
+      if self.class.column_names.include?("retry_count")
+        attributes.merge!(retry_count: 0)
+      end
+
+      merge_updated_at_for_crono_trigger!(attributes, now)
+      update_columns(attributes)
     end
 
     def crono_trigger_unlock!
@@ -232,7 +234,7 @@ module CronoTrigger
 
     def locking?(at: Time.now)
       self[crono_trigger_column_name(:execute_lock)] > 0 && 
-        self[crono_trigger_column_name(:execute_lock)] > at.to_i - self.class.execute_lock_timeout
+        self[crono_trigger_column_name(:execute_lock)] >= at.to_f - self.class.execute_lock_timeout
     end
 
     def assume_executing?
