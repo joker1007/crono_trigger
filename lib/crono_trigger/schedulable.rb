@@ -151,6 +151,7 @@ module CronoTrigger
       if new_record?
         self.attributes = attributes
       else
+        merge_updated_at_for_crono_trigger!(attributes)
         update_columns(attributes)
       end
     end
@@ -171,6 +172,7 @@ module CronoTrigger
           attributes.merge!(retry_count: retry_count.to_i + 1)
         end
 
+        merge_updated_at_for_crono_trigger!(attributes, now)
         update_columns(attributes)
       end
     end
@@ -185,23 +187,28 @@ module CronoTrigger
           crono_trigger_column_name(:locked_by) => nil,
         }
 
+        now = Time.current
+
         if update_last_executed_at && self.class.column_names.include?(crono_trigger_column_name(:last_executed_at))
-          attributes.merge!(crono_trigger_column_name(:last_executed_at) => Time.current)
+          attributes.merge!(crono_trigger_column_name(:last_executed_at) => now)
         end
 
         if self.class.column_names.include?("retry_count")
           attributes.merge!(retry_count: 0)
         end
 
+        merge_updated_at_for_crono_trigger!(attributes, now)
         update_columns(attributes)
       end
     end
 
     def crono_trigger_unlock!
-      update_columns(
+      attributes = {
         crono_trigger_column_name(:execute_lock) => 0,
         crono_trigger_column_name(:locked_by) => nil,
-      )
+      }
+      merge_updated_at_for_crono_trigger!(attributes)
+      update_columns(attributes)
     end
 
     def crono_trigger_status
@@ -300,7 +307,14 @@ module CronoTrigger
         attributes.merge!(last_error_time: now)
       end
 
+      merge_updated_at_for_crono_trigger!(attributes)
       update_columns(attributes) unless attributes.empty?
+    end
+
+    def merge_updated_at_for_crono_trigger!(attributes, time = Time.current)
+      if self.class.column_names.include?("updated_at")
+        attributes.merge!("updated_at" => time)
+      end
     end
   end
 end
