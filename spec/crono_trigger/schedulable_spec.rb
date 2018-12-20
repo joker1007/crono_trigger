@@ -148,7 +148,7 @@ RSpec.describe CronoTrigger::Schedulable do
         end
       end
 
-      Timecop.freeze(Time.utc(2017, 6, 18, 1, 25)) do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 25, 1)) do
         records = Notification.executables_with_lock(limit: 1)
         aggregate_failures do
           expect(records).to match_array([notification2])
@@ -464,10 +464,11 @@ RSpec.describe CronoTrigger::Schedulable do
   describe "#locking?" do
     it "return locking status as Boolean" do
       expect(notification1.locking?).to be_falsey
-      locked_at = Time.utc(2017, 6, 18, 1, 0)
+      locked_at = Time.utc(2017, 6, 18, 1, 0, 0)
+      next_tick = Time.utc(2017, 6, 18, 1, 0, 1)
       notification1.execute_lock = locked_at.to_i
-      expect(notification1.locking?(at: locked_at + Notification.execute_lock_timeout - 1)).to be_truthy
-      expect(notification1.locking?(at: locked_at + Notification.execute_lock_timeout)).to be_falsey
+      expect(notification1.locking?(at: locked_at + Notification.execute_lock_timeout)).to be_truthy
+      expect(notification1.locking?(at: next_tick + Notification.execute_lock_timeout)).to be_falsey
     end
   end
 

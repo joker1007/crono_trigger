@@ -16,7 +16,9 @@ if ActiveRecord.version < Gem::Version.new("5.0.0")
         t.datetime :last_error_time
         t.integer :retry_count, default: 0, null: false
 
-        t.timestamps null: false
+        if ENV["NO_TIMESTAMP"] != "true"
+          t.timestamps null: false
+        end
       end
       add_index :notifications, [:next_execute_at, :execute_lock, :started_at, :finished_at], name: "crono_trigger_index_on_notifications"
     end
@@ -40,7 +42,9 @@ else
         t.datetime :last_error_time
         t.integer :retry_count, default: 0, null: false
 
-        t.timestamps null: false
+        if ENV["NO_TIMESTAMP"] != "true"
+          t.timestamps null: false
+        end
       end
       add_index :notifications, [:next_execute_at, :execute_lock, :started_at, :finished_at], name: "crono_trigger_index_on_notifications"
     end
