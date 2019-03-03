@@ -55,11 +55,28 @@ interface ISchedulableRecordsProps {
 interface ISchedulableRecordsStates {
   records: ISchedulableRecord[],
   timeRangeMinute: number,
+  executions: IExecution[],
 }
 
 interface ISchedulableRecordProps {
   model_name: string,
   record: ISchedulableRecord
+}
+
+interface IExecution {
+  status: string,
+  id: number,
+  schedule_id: number,
+  schedule_type: string,
+  worker_id: number,
+  executed_at: string,
+  completed_at: string | null,
+  error_name: string | null,
+  error_reason: string | null,
+}
+
+interface IExecutionProps {
+  execution: IExecution
 }
 
 export {
@@ -73,5 +90,7 @@ export {
   ISchedulableRecord,
   ISchedulableRecordsProps,
   ISchedulableRecordsStates,
-  ISchedulableRecordProps
+  ISchedulableRecordProps,
+  IExecution,
+  IExecutionProps
 }

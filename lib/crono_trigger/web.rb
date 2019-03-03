@@ -87,6 +87,13 @@ module CronoTrigger
       end
     end
 
+
+    post "/models/executions/:id/retry" do
+      CronoTrigger::Models::Execution.find(params[:id]).retry!
+      status 200
+      body ""
+    end
+
     post "/models/:name/:id/retry" do
       model_class = CronoTrigger::Schedulable.included_by.find { |c| c.name == params[:name] }
       if model_class
@@ -110,22 +117,22 @@ module CronoTrigger
           now = Time.now
           records = @scheduled_records.map do |r|
             {
-              "crono_trigger_status" => r.crono_trigger_status,
-              "id" => r.id,
-              "cron" => r[r.crono_trigger_column_name(:cron)],
-              "next_execute_at" => r[r.crono_trigger_column_name(:next_execute_at)],
-              "last_executed_at" => r[r.crono_trigger_column_name(:last_executed_at)],
-              "timezone" => r[r.crono_trigger_column_name(:timezone)],
-              "execute_lock" => r[r.crono_trigger_column_name(:execute_lock)],
-              "locked_by" => r[r.crono_trigger_column_name(:locked_by)],
-              "started_at" => r[r.crono_trigger_column_name(:started_at)],
-              "finished_at" => r[r.crono_trigger_column_name(:finished_at)],
-              "last_error_name" => r[r.crono_trigger_column_name(:last_error_name)],
-              "last_error_reason" => r[r.crono_trigger_column_name(:last_error_reason)],
-              "last_error_time" => r[r.crono_trigger_column_name(:last_error_time)],
-              "retry_count" => r[r.crono_trigger_column_name(:retry_count)],
-              "time_to_unlock" => [(r.class.execute_lock_timeout + r[r.crono_trigger_column_name(:execute_lock)]) - now.to_i, 0].max,
-              "delay_sec" => r.locking?(at: now) ? 0 : (now - r[r.crono_trigger_column_name(:next_execute_at)]).to_i,
+              -"crono_trigger_status" => r.crono_trigger_status,
+              -"id" => r.id,
+              -"cron" => r[r.crono_trigger_column_name(:cron)],
+              -"next_execute_at" => r[r.crono_trigger_column_name(:next_execute_at)],
+              -"last_executed_at" => r[r.crono_trigger_column_name(:last_executed_at)],
+              -"timezone" => r[r.crono_trigger_column_name(:timezone)],
+              -"execute_lock" => r[r.crono_trigger_column_name(:execute_lock)],
+              -"locked_by" => r[r.crono_trigger_column_name(:locked_by)],
+              -"started_at" => r[r.crono_trigger_column_name(:started_at)],
+              -"finished_at" => r[r.crono_trigger_column_name(:finished_at)],
+              -"last_error_name" => r[r.crono_trigger_column_name(:last_error_name)],
+              -"last_error_reason" => r[r.crono_trigger_column_name(:last_error_reason)],
+              -"last_error_time" => r[r.crono_trigger_column_name(:last_error_time)],
+              -"retry_count" => r[r.crono_trigger_column_name(:retry_count)],
+              -"time_to_unlock" => [(r.class.execute_lock_timeout + r[r.crono_trigger_column_name(:execute_lock)]) - now.to_i, 0].max,
+              -"delay_sec" => r.locking?(at: now) ? 0 : (now - r[r.crono_trigger_column_name(:next_execute_at)]).to_i,
             }
           end
           Oj.dump({
@@ -158,6 +165,39 @@ module CronoTrigger
 
     get "/models" do
       erb :index
+    end
+
+    get "/models/:name/executions.:format" do
+      if params[:format] == "json"
+        model_class = CronoTrigger::Schedulable.included_by.find { |c| c.name == params[:name] }
+        if model_class
+          rel = CronoTrigger::Models::Execution.recently(schedule_type: model_class)
+          rel.where!("executed_at >= ?", Time.parse(params[:from])) if params[:from]
+          rel.where!("executed_at <= ?", Time.parse(params[:to])) if params[:to]
+          rel = rel.limit(params[:limit] || 100)
+          records = rel.map do |r|
+            {
+              -"id" => r.id,
+              -"schedule_id" => r.schedule_id,
+              -"schedule_type" => r.schedule_type,
+              -"worker_id" => r.worker_id,
+              -"executed_at" => r.executed_at,
+              -"completed_at" => r.completed_at,
+              -"status" => r.status,
+              -"error_name" => r.error_name,
+              -"error_reason" => r.error_reason,
+            }
+          end
+          Oj.dump({
+            records: records,
+          }, mode: :compat)
+        else
+          status 404
+          "Model Class is not found"
+        end
+      else
+        raise "unknown format"
+      end
     end
   end
 end

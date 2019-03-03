@@ -4,6 +4,7 @@ require "chrono"
 require "tzinfo"
 
 require "crono_trigger/exception_handler"
+require "crono_trigger/execution_tracker"
 
 module CronoTrigger
   module Schedulable
@@ -26,9 +27,12 @@ module CronoTrigger
 
     included do
       CronoTrigger::Schedulable.included_by << self
-      class_attribute :crono_trigger_options, :executable_conditions
+      class_attribute :crono_trigger_options, :executable_conditions, :track_execution
       self.crono_trigger_options ||= {}
       self.executable_conditions ||= []
+      self.track_execution ||= false
+
+      has_many :crono_trigger_executions, class_name: "CronoTrigger::Models::Execution", as: :schedule, inverse_of: :schedule
 
       define_model_callbacks :execute, :retry
 
@@ -107,12 +111,15 @@ module CronoTrigger
     end
 
     def do_execute
+      execution_tracker = ExecutionTracker.new(self)
       run_callbacks :execute do
         catch(:ok_without_reset) do
           catch(:ok) do
             catch(:retry) do
               catch(:abort) do
-                execute
+                execution_tracker.track do
+                  execute
+                end
                 throw :ok
               end
               raise AbortExecution
@@ -157,12 +164,16 @@ module CronoTrigger
       end
     end
 
-    def retry!
+    def retry!(immediately: false)
       run_callbacks :retry do
         logger.info "Retry #{self.class}-#{id}" if logger
 
         now = Time.current
-        wait = crono_trigger_options[:exponential_backoff] ? retry_interval * [2 * (retry_count - 1), 1].max : retry_interval
+        if immediately
+          wait = 0
+        else
+          wait = crono_trigger_options[:exponential_backoff] ? retry_interval * [2 * (retry_count - 1), 1].max : retry_interval
+        end
         attributes = {
           crono_trigger_column_name(:next_execute_at) => now + wait,
           crono_trigger_column_name(:execute_lock) => 0,
