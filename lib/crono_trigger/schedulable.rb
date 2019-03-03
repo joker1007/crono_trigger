@@ -67,10 +67,7 @@ module CronoTrigger
           transaction do
             r = all.lock.find(id)
             unless r.locking?
-              r.update_columns(
-                crono_trigger_column_name(:execute_lock) => Time.current.to_i,
-                crono_trigger_column_name(:locked_by) => CronoTrigger.config.worker_id
-              )
+              r.crono_trigger_lock!
               records << r
             end
           end
@@ -201,6 +198,15 @@ module CronoTrigger
       end
 
       merge_updated_at_for_crono_trigger!(attributes, now)
+      update_columns(attributes)
+    end
+
+    def crono_trigger_lock!
+      attributes = {
+        crono_trigger_column_name(:execute_lock) => Time.current.to_i,
+        crono_trigger_column_name(:locked_by) => CronoTrigger.config.worker_id
+      }
+      merge_updated_at_for_crono_trigger!(attributes)
       update_columns(attributes)
     end
 

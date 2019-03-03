@@ -472,6 +472,24 @@ RSpec.describe CronoTrigger::Schedulable do
     end
   end
 
+  describe "#crono_trigger_unlock!" do
+    it "unlock myself" do
+      locked_at = Time.utc(2017, 6, 18, 1, 0, 0)
+      notification1.execute_lock = locked_at.to_i
+      expect(notification1.locking?(at: locked_at + Notification.execute_lock_timeout)).to be_truthy
+      notification1.crono_trigger_unlock!
+      expect(notification1.locking?(at: locked_at + Notification.execute_lock_timeout)).to be_falsey
+    end
+  end
+
+  describe "#crono_trigger_lock!" do
+    it "lock myself" do
+      expect(notification1.locking?).to be_falsey
+      notification1.crono_trigger_lock!
+      expect(notification1.locking?).to be_truthy
+    end
+  end
+
   describe "#assume_executing?" do
     it "return locking status as Boolean" do
       expect(notification1.assume_executing?).to be_falsey
