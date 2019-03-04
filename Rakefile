@@ -10,11 +10,13 @@ pwd = File.expand_path('../', __FILE__)
 gemfiles = Dir.glob(File.join(pwd, "gemfiles", "*.gemfile")).map { |f| File.basename(f, ".*") }
 
 namespace :js do
+  desc "Cleanup built javascripts"
   task :clean do
     rm_r(File.join(pwd, "web", "app", "build")) if File.exist?(File.join(pwd, "web", "app", "build"))
     rm_r(File.join(pwd, "web", "public"))
   end
 
+  desc "build javascripts"
   task build: [:clean] do
     Dir.chdir(File.join(pwd, "web", "app"))
     sh({"PUBLIC_URL" => "<%= URI.parse(url('/')).path.chop %>"}, "npm run build") do |ok, res|
