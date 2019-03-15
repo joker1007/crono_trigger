@@ -155,6 +155,8 @@ module CronoTrigger
         merge_updated_at_for_crono_trigger!(attributes)
         update_columns(attributes)
       end
+
+      self
     end
 
     def retry!
