@@ -70,7 +70,7 @@ class CreateMailNotifications < ActiveRecord::Migration
       t.datetime  :next_execute_at
       t.datetime  :last_executed_at
       t.integer   :execute_lock, limit: 8, default: 0, null: false
-      t.datetime  :started_at, null: false
+      t.datetime  :started_at
       t.datetime  :finished_at
       t.string    :last_error_name
       t.string    :last_error_reason
@@ -118,7 +118,7 @@ class MailNotification < ActiveRecord::Base
 end
 
 # one time schedule
-MailNotification.create(next_execute_at: Time.current.since(5.minutes))
+MailNotification.create.activate_schedule!(at: Time.current.since(5.minutes))
 
 # cron schedule
 MailNotification.create(cron: "0 12 * * *").activate_schedule!
