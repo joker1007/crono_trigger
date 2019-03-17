@@ -18,7 +18,7 @@ class <%= migration_class_name %> < ActiveRecord::Migration<%= Rails::VERSION::M
       t.string    :timezone
       t.integer   :execute_lock, limit: 8, default: 0, null: false
       t.string    :locked_by
-      t.datetime  :started_at, null: false
+      t.datetime  :started_at
       t.datetime  :finished_at
       t.string    :last_error_name
       t.string    :last_error_reason
