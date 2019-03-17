@@ -1,6 +1,7 @@
 require "crono_trigger"
 require "sinatra/base"
 require "rack/contrib/post_body_content_type_parser"
+require "oj"
 
 module CronoTrigger
   class Web < Sinatra::Application
