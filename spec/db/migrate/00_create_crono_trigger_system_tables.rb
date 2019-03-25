@@ -44,6 +44,21 @@ else
       end
 
       add_index :crono_trigger_signals, [:sent_at, :worker_id]
+
+      create_table :crono_trigger_executions do |t|
+        t.integer :schedule_id, null: false
+        t.string :schedule_type, null: false
+        t.string :worker_id, null: false
+        t.datetime :executed_at, null: false
+        t.datetime :completed_at
+        t.string :status, null: false, default: "executing"
+        t.string :error_name
+        t.string :error_reason
+      end
+
+      add_index :crono_trigger_executions, [:schedule_type, :schedule_id, :executed_at], name: "index_crono_trigger_executions_on_schtype_schid_executed_at"
+      add_index :crono_trigger_executions, [:schedule_type, :executed_at], name: "index_crono_trigger_executions_on_schtype_executed_at"
+      add_index :crono_trigger_executions, [:executed_at]
     end
   end
 end
