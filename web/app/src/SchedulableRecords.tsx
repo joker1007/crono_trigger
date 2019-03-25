@@ -135,6 +135,7 @@ class SchedulableRecords extends React.Component<ISchedulableRecordsProps, ISche
                 <SchedulableRecordTableCell>Status</SchedulableRecordTableCell>
                 <SchedulableRecordTableCell>ID</SchedulableRecordTableCell>
                 <SchedulableRecordTableCell>ScheduleID</SchedulableRecordTableCell>
+                <SchedulableRecordTableCell>ScheduleType</SchedulableRecordTableCell>
                 <SchedulableRecordTableCell>WorkerID</SchedulableRecordTableCell>
                 <SchedulableRecordTableCell>Executed At</SchedulableRecordTableCell>
                 <SchedulableRecordTableCell>Completed At</SchedulableRecordTableCell>
