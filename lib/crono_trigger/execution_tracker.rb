@@ -8,7 +8,9 @@ module CronoTrigger
       if @schedulable.track_execution
         begin
           execution = @schedulable.crono_trigger_executions.create_with_timestamp!
+          p "fuuuuuuu"
           pr.call
+          p "hogehoge"
           execution.complete!
         rescue => e
           execution.error!(e)

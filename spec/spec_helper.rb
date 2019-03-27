@@ -55,6 +55,7 @@ class Notification < ActiveRecord::Base
       :error_handler
     ]
   }
+  self.track_execution = true
 
   @results = {}
   def self.results
@@ -96,6 +97,7 @@ RSpec.configure do |config|
 
   config.after(:each) do
     ActiveRecord::Base.connection.verify!
+    CronoTrigger::Models::Execution.delete_all
     Notification.delete_all
     Notification.results.clear
   end

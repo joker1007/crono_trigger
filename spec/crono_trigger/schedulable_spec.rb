@@ -218,6 +218,7 @@ RSpec.describe CronoTrigger::Schedulable do
 
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
         aggregate_failures do
+          expect(CronoTrigger::Models::Execution.count).to eq(0)
           expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
           expect(Notification.results).to be_empty
           expect(notification1).to receive(:after)
@@ -232,6 +233,8 @@ RSpec.describe CronoTrigger::Schedulable do
           expect(notification1.last_executed_at).to eq(Time.utc(2017, 6, 18, 1, 0))
           expect(notification1.execute_lock).to eq(0)
           expect(Notification.results).to eq({notification1.id => "executed"})
+          expect(CronoTrigger::Models::Execution.count).to eq(1)
+          expect(CronoTrigger::Models::Execution.last.status).to eq("completed")
         end
       end
     end
@@ -261,6 +264,10 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.execute_lock).to eq(0)
             expect(notification1.retry_count).to eq(1)
             expect(Notification.results).to be_empty
+
+            execution = CronoTrigger::Models::Execution.last
+            expect(execution.status).to eq("failed")
+            expect(execution.error_name).to eq("RuntimeError")
           end
         end
       end
@@ -293,6 +300,10 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.last_error_name).to eq("CronoTrigger::Schedulable::AbortExecution")
             expect(notification1.last_error_time).to eq(Time.utc(2017, 6, 18, 1, 0))
             expect(Notification.results).to be_empty
+
+            execution = CronoTrigger::Models::Execution.last
+            expect(execution.status).to eq("failed")
+            expect(execution.error_name).to eq("CronoTrigger::Schedulable::AbortExecution")
           end
         end
       end
@@ -325,6 +336,10 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.execute_lock).to eq(0)
             expect(notification1.retry_count).to eq(1)
             expect(Notification.results).to be_empty
+
+            execution = CronoTrigger::Models::Execution.last
+            expect(execution.status).to eq("failed")
+            expect(execution.error_name).to eq("CronoTrigger::Schedulable::RetryExecution")
           end
         end
       end
@@ -356,6 +371,9 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.execute_lock).to eq(0)
             expect(notification1.retry_count).to eq(0)
             expect(Notification.results).to be_empty
+
+            execution = CronoTrigger::Models::Execution.last
+            expect(execution.status).to eq("completed")
           end
         end
       end
@@ -394,6 +412,9 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.last_executed_at).to eq(Time.utc(2017, 6, 18, 1, 0))
             expect(notification1.execute_lock).to eq(0)
             expect(notification1.retry_count).to eq(0)
+
+            execution = CronoTrigger::Models::Execution.last
+            expect(execution.status).to eq("completed")
           end
         end
       end
@@ -430,6 +451,9 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.last_error_reason).to eq("error")
             expect(notification1.last_error_time).to eq(Time.utc(2017, 6, 18, 1, 0))
             expect(Notification.results).to be_empty
+
+            execution = CronoTrigger::Models::Execution.last
+            expect(execution.status).to eq("failed")
           end
         end
 

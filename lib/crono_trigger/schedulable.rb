@@ -21,6 +21,7 @@ module CronoTrigger
     end
 
     class AbortExecution < StandardError; end
+    class RetryExecution < StandardError; end
 
     extend ActiveSupport::Concern
     include ActiveSupport::Callbacks
@@ -113,21 +114,21 @@ module CronoTrigger
     def do_execute
       execution_tracker = ExecutionTracker.new(self)
       run_callbacks :execute do
-        catch(:ok_without_reset) do
-          catch(:ok) do
-            catch(:retry) do
-              catch(:abort) do
-                execution_tracker.track do
+        execution_tracker.track do
+          catch(:ok_without_reset) do
+            catch(:ok) do
+              catch(:retry) do
+                catch(:abort) do
                   execute
+                  throw :ok
                 end
-                throw :ok
+                raise AbortExecution
               end
-              raise AbortExecution
+              retry!
+              raise RetryExecution
             end
-            retry!
-            return
+            reset!
           end
-          reset!
         end
       end
     rescue AbortExecution => ex
@@ -135,6 +136,8 @@ module CronoTrigger
       reset!(false)
 
       raise
+    rescue RetryExecution => ex
+      save_last_error_info(ex)
     rescue Exception => ex
       save_last_error_info(ex)
       retry_or_reset!(ex)
