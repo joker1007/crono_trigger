@@ -9,6 +9,8 @@ gemfile:
   - gemfiles/activerecord-52.gemfile
 before_install:
   - mysql -e 'CREATE DATABASE IF NOT EXISTS test;'
+services:
+  - mysql
 env:
   - DB=sqlite
   - DB=mysql MYSQL_RESTART_COMMAND="sudo service mysql restart"
