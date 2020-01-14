@@ -7,6 +7,7 @@ rvm:
 gemfile:
   - gemfiles/activerecord-52.gemfile
 before_install:
+  - gem i bundler
   - mysql -e 'CREATE DATABASE IF NOT EXISTS test;'
 services:
   - mysql
