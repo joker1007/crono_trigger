@@ -217,11 +217,11 @@ module CronoTrigger
       update_columns(attributes)
     end
 
-    def crono_trigger_lock!
+    def crono_trigger_lock!(**attributes)
       attributes = {
         crono_trigger_column_name(:execute_lock) => Time.current.to_i,
         crono_trigger_column_name(:locked_by) => CronoTrigger.config.worker_id
-      }
+      }.merge(attributes)
       merge_updated_at_for_crono_trigger!(attributes)
       update_columns(attributes)
     end
@@ -265,6 +265,11 @@ module CronoTrigger
 
     def crono_trigger_column_name(name)
       self.class.crono_trigger_column_name(name)
+    end
+
+    def execute_now
+      crono_trigger_lock!(next_execute_at: Time.now)
+      do_execute
     end
 
     private
