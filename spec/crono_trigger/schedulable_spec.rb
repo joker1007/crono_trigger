@@ -512,6 +512,12 @@ RSpec.describe CronoTrigger::Schedulable do
       notification1.crono_trigger_lock!
       expect(notification1.locking?).to be_truthy
     end
+
+    it "accept optional attributes" do
+      next_execute_at = Time.utc(2017, 6, 18, 1, 0, 30)
+      notification1.crono_trigger_lock!(next_execute_at: next_execute_at)
+      expect(notification1.next_execute_at).to eq(next_execute_at)
+    end
   end
 
   describe "#assume_executing?" do
@@ -529,6 +535,72 @@ RSpec.describe CronoTrigger::Schedulable do
 
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 10, 1)) do
         expect(notification1.assume_executing?).to be_falsey
+      end
+    end
+  end
+
+  describe "#execute_now" do
+    it "execute immediately" do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 15)) do
+        aggregate_failures do
+          notification1.update! cron: nil, next_execute_at: nil
+          expect(CronoTrigger::Models::Execution.count).to eq(0)
+          expect(Notification.results).to be_empty
+          expect(notification1).to receive(:after)
+
+          expect {
+            notification1.execute_now
+          }.to change { notification1.execute_callback }.from(nil).to(:before)
+
+          notification1.reload
+
+          expect(notification1.next_execute_at).to be_nil
+          expect(notification1.last_executed_at).to eq(Time.utc(2017, 6, 18, 1, 15))
+          expect(notification1.execute_lock).to eq(0)
+          expect(Notification.results).to eq({notification1.id => "executed"})
+          expect(CronoTrigger::Models::Execution.count).to eq(1)
+          expect(CronoTrigger::Models::Execution.last.status).to eq("completed")
+        end
+      end
+    end
+
+    it "is retriable" do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 15)) do
+        aggregate_failures do
+          notification1.update! cron: nil, next_execute_at: nil
+          expect(CronoTrigger::Models::Execution.count).to eq(0)
+          expect(notification1).not_to receive(:after)
+          expect(notification1).to receive(:execute).and_throw(:retry)
+
+          expect {
+            notification1.execute_now
+          }.to change { notification1.execute_callback }.from(nil).to(:before)
+
+          notification1.reload
+
+          expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 15, CronoTrigger::Schedulable::DEFAULT_RETRY_INTERVAL))
+          expect(notification1.last_executed_at).to be_nil
+          expect(notification1.execute_lock).to eq(0)
+          expect(CronoTrigger::Models::Execution.last.status).to eq("failed")
+        end
+      end
+    end
+
+    it "lock itself before execution" do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 15)) do
+        aggregate_failures do
+          notification1.update! cron: nil, next_execute_at: nil
+          expect(notification1).to receive(:do_execute)
+          expect(notification1.locking?).to be_falsey
+
+          notification1.execute_now
+
+          notification1.reload
+
+          expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 15))
+          expect(notification1.last_executed_at).to be_nil
+          expect(notification1.locking?).to be_truthy
+        end
       end
     end
   end
