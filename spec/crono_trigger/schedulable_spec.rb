@@ -616,5 +616,27 @@ RSpec.describe CronoTrigger::Schedulable do
         end
       end
     end
+
+    it "execute and save unpersisted model" do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 15)) do
+        aggregate_failures do
+          expect(CronoTrigger::Models::Execution.count).to eq(0)
+          expect(Notification.results).to be_empty
+          expect(new_notification).to receive(:after)
+
+          expect {
+            new_notification.execute_now
+          }.to change { new_notification.execute_callback }.from(nil).to(:before)
+
+          expect(new_notification.persisted?).to be_truthy
+          expect(new_notification.next_execute_at).to be_nil
+          expect(new_notification.last_executed_at).to eq(Time.utc(2017, 6, 18, 1, 15))
+          expect(new_notification.execute_lock).to eq(0)
+          expect(Notification.results).to eq({new_notification.id => "executed"})
+          expect(CronoTrigger::Models::Execution.count).to eq(1)
+          expect(CronoTrigger::Models::Execution.last.status).to eq("completed")
+        end
+      end
+    end
   end
 end

@@ -273,6 +273,7 @@ module CronoTrigger
 
     def execute_now
       crono_trigger_lock!(next_execute_at: Time.now)
+      save! if new_record?
       do_execute
     end
 
