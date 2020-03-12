@@ -223,7 +223,11 @@ module CronoTrigger
         crono_trigger_column_name(:locked_by) => CronoTrigger.config.worker_id
       }.merge(attributes)
       merge_updated_at_for_crono_trigger!(attributes)
-      update_columns(attributes)
+      if new_record?
+        self.attributes = attributes
+      else
+        update_columns(attributes)
+      end
     end
 
     def crono_trigger_unlock!

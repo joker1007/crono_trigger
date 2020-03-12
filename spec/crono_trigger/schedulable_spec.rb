@@ -51,6 +51,11 @@ RSpec.describe CronoTrigger::Schedulable do
       started_at: Time.current.since(2.day),
     ).tap(&:activate_schedule!)
   end
+  let(:new_notification) do
+    Notification.new(
+      started_at: Time.current,
+    )
+  end
 
   describe "before_create callback" do
     it "calculate_next_execute_at" do
@@ -517,6 +522,14 @@ RSpec.describe CronoTrigger::Schedulable do
       next_execute_at = Time.utc(2017, 6, 18, 1, 0, 30)
       notification1.crono_trigger_lock!(next_execute_at: next_execute_at)
       expect(notification1.next_execute_at).to eq(next_execute_at)
+    end
+
+    it "lock even if unpersisted" do
+      expect(new_notification.locking?).to be_falsey
+      expect(new_notification.new_record?).to be_truthy
+      new_notification.crono_trigger_lock!
+      expect(new_notification.locking?).to be_truthy
+      expect(new_notification.new_record?).to be_truthy
     end
   end
 
