@@ -51,6 +51,11 @@ RSpec.describe CronoTrigger::Schedulable do
       started_at: Time.current.since(2.day),
     ).tap(&:activate_schedule!)
   end
+  let(:new_notification) do
+    Notification.new(
+      started_at: Time.current,
+    )
+  end
 
   describe "before_create callback" do
     it "calculate_next_execute_at" do
@@ -518,6 +523,14 @@ RSpec.describe CronoTrigger::Schedulable do
       notification1.crono_trigger_lock!(next_execute_at: next_execute_at)
       expect(notification1.next_execute_at).to eq(next_execute_at)
     end
+
+    it "lock even if unpersisted" do
+      expect(new_notification.locking?).to be_falsey
+      expect(new_notification.new_record?).to be_truthy
+      new_notification.crono_trigger_lock!
+      expect(new_notification.locking?).to be_truthy
+      expect(new_notification.new_record?).to be_truthy
+    end
   end
 
   describe "#assume_executing?" do
@@ -600,6 +613,28 @@ RSpec.describe CronoTrigger::Schedulable do
           expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 15))
           expect(notification1.last_executed_at).to be_nil
           expect(notification1.locking?).to be_truthy
+        end
+      end
+    end
+
+    it "execute and save unpersisted model" do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 15)) do
+        aggregate_failures do
+          expect(CronoTrigger::Models::Execution.count).to eq(0)
+          expect(Notification.results).to be_empty
+          expect(new_notification).to receive(:after)
+
+          expect {
+            new_notification.execute_now
+          }.to change { new_notification.execute_callback }.from(nil).to(:before)
+
+          expect(new_notification.persisted?).to be_truthy
+          expect(new_notification.next_execute_at).to be_nil
+          expect(new_notification.last_executed_at).to eq(Time.utc(2017, 6, 18, 1, 15))
+          expect(new_notification.execute_lock).to eq(0)
+          expect(Notification.results).to eq({new_notification.id => "executed"})
+          expect(CronoTrigger::Models::Execution.count).to eq(1)
+          expect(CronoTrigger::Models::Execution.last.status).to eq("completed")
         end
       end
     end
