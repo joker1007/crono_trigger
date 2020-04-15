@@ -62,5 +62,20 @@ RSpec.describe CronoTrigger::Worker do
       sleep 2
       expect(worker.polling_threads[0]).to be_quiet
     end
+
+    describe "error handling" do
+      context "failed to register worker" do
+        before do
+          expect(CronoTrigger::Models::Worker).to receive(:find_or_initialize_by)
+            .with(worker_id: CronoTrigger.config.worker_id)
+            .and_raise(ActiveRecord::StatementInvalid)
+        end
+
+        it "call global_error_handlers" do
+          assert_calling_global_error_handlers
+          worker.send(:heartbeat)
+        end
+      end
+    end
   end
 end

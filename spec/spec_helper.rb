@@ -53,7 +53,7 @@ class Notification < ActiveRecord::Base
     error_handlers: [
       proc { |ex, record| record.class.results[record.id] = ex.message },
       :error_handler
-    ]
+    ],
   }
   self.track_execution = true
 
@@ -85,7 +85,21 @@ end
 CreateCronoTriggerSystemTables.up
 CreateNotifications.up
 
+CronoTrigger.config.global_error_handlers << proc do |ex|
+  # noop
+end
+
 CronoTrigger.config.model_names = ["Notification"]
+CronoTrigger.config.polling_interval = 0.1
+
+module AssertionHelper
+  def assert_calling_global_error_handlers
+    expect(CronoTrigger.config.global_error_handlers.size).to be >= 1
+    CronoTrigger.config.global_error_handlers.each do |handler|
+      expect(handler).to receive(:call).with(a_kind_of(Exception))
+    end
+  end
+end
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
@@ -101,4 +115,6 @@ RSpec.configure do |config|
     Notification.delete_all
     Notification.results.clear
   end
+
+  config.include AssertionHelper
 end

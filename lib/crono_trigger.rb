@@ -19,6 +19,7 @@ module CronoTrigger
     executor_thread: 25,
     model_names: nil,
     error_handlers: [],
+    global_error_handlers: [],
   )
 
   def self.config

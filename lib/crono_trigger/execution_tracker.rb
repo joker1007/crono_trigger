@@ -4,12 +4,25 @@ module CronoTrigger
       @schedulable = schedulable
     end
 
+    def self.track(schedulable, &pr)
+      new(schedulable).track(&pr)
+    end
+
     def track(&pr)
       if @schedulable.track_execution
         begin
           execution = @schedulable.crono_trigger_executions.create_with_timestamp!
-          pr.call
-          execution.complete!
+          result = pr.call
+          case result
+          when :ok
+            execution.complete!
+          when :retry
+            execution.retrying!
+          when :abort
+            execution.aborted!
+          else
+            execution.complete!
+          end
         rescue => e
           execution.error!(e)
           raise
