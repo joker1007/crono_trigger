@@ -21,12 +21,10 @@ Rollbar.plugins.define('crono_trigger') do
 
   execute! do
     CronoTrigger.config.error_handlers << proc do |ex, record|
-      Rollbar.reset_notifier!
       Rollbar::CronoTrigger.handle_exception(ex, record)
     end
 
     CronoTrigger.config.global_error_handlers << proc do |ex|
-      Rollbar.reset_notifier!
       Rollbar::CronoTrigger.handle_exception(ex)
     end
   end
