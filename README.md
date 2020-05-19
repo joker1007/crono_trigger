@@ -111,7 +111,7 @@ class MailNotification < ActiveRecord::Base
     send_mail
 
     throw :retry # break execution and retry task
-    throw :abort # break execution and raise AbortExecution. AbortExecution is not retried
+    throw :abort # break execution
     throw :ok    # break execution and handle task as success
     throw :ok_without_reset    # break execution and handle task as success but without schedule reseting and unlocking
   end
