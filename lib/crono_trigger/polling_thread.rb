@@ -84,6 +84,9 @@ module CronoTrigger
         @logger.info "(executor-thread-#{Thread.current.object_id}) Execute #{record.class}-#{record.id}"
         record.do_execute
       end
+    rescue Exception => ex
+      @logger.error(ex)
+      CronoTrigger::GlobalExceptionHandler.handle_global_exception(ex)
     end
 
     def unlock_overflowed_records(model, overflowed_record_ids)
