@@ -20,9 +20,6 @@ module CronoTrigger
       @included_by
     end
 
-    class AbortExecution < StandardError; end
-    class RetryExecution < StandardError; end
-
     extend ActiveSupport::Concern
     include ActiveSupport::Callbacks
 
@@ -112,37 +109,34 @@ module CronoTrigger
     end
 
     def do_execute
-      execution_tracker = ExecutionTracker.new(self)
-      run_callbacks :execute do
-        execution_tracker.track do
-          catch(:ok_without_reset) do
-            catch(:ok) do
-              catch(:retry) do
-                catch(:abort) do
-                  execute
-                  throw :ok
-                end
-                raise AbortExecution
-              end
-              retry!
-              raise RetryExecution
-            end
-            reset!
-          end
-        end
+      ExecutionTracker.track(self) do
+        do_execute_with_catch
       end
-    rescue AbortExecution => ex
-      save_last_error_info(ex)
-      reset!(false)
-
-      raise
-    rescue RetryExecution => ex
-      save_last_error_info(ex)
     rescue Exception => ex
+      logger.error(ex) if logger
       save_last_error_info(ex)
       retry_or_reset!(ex)
+    end
 
-      raise
+    private def do_execute_with_catch
+      catch(:ok_without_reset) do
+        catch(:ok) do
+          catch(:retry) do
+            catch(:abort) do
+              run_callbacks :execute do
+                execute
+              end
+              throw :ok
+            end
+            abort_execution!
+            return :abort
+          end
+          retry!
+          return :retry
+        end
+        reset!
+        return :ok
+      end
     end
 
     def activate_schedule!(at: Time.current)
@@ -215,6 +209,10 @@ module CronoTrigger
 
       merge_updated_at_for_crono_trigger!(attributes, now)
       update_columns(attributes)
+    end
+
+    def abort_execution!
+      reset!(false)
     end
 
     def crono_trigger_lock!(**attributes)

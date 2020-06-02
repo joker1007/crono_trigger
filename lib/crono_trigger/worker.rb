@@ -1,5 +1,7 @@
 require "active_support/core_ext/string"
 
+require "crono_trigger/global_exception_handler"
+
 module CronoTrigger
   module Worker
     HEARTBEAT_INTERVAL = 60
@@ -100,9 +102,9 @@ module CronoTrigger
           worker_record.polling_model_names = @model_names
           worker_record.last_heartbeated_at = Time.current
           @logger.info("[worker_id:#{@crono_trigger_worker_id}] Send heartbeat to database")
-          worker_record.save
+          worker_record.save!
         rescue => ex
-          p ex
+          CronoTrigger::GlobalExceptionHandler.handle_global_exception(ex)
           stop
         end
       end
@@ -128,6 +130,8 @@ module CronoTrigger
       CronoTrigger::Models::Worker.connection_pool.with_connection do
         CronoTrigger::Models::Worker.find_by(worker_id: @crono_trigger_worker_id)&.destroy
       end
+    rescue => ex
+      CronoTrigger::GlobalExceptionHandler.handle_global_exception(ex)
     end
 
     def handle_signal_from_rdb
@@ -137,6 +141,8 @@ module CronoTrigger
           s.kill_me(to_supervisor: s.signal != "TSTP")
         end
       end
+    rescue => ex
+      CronoTrigger::GlobalExceptionHandler.handle_global_exception(ex)
     end
   end
 end

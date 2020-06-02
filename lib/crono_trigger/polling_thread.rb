@@ -22,8 +22,9 @@ module CronoTrigger
               poll(model)
             rescue ThreadError => e
               @logger.error(e) unless e.message == "queue empty"
-            rescue => e
-              @logger.error(e)
+            rescue => ex
+              @logger.error(ex)
+              CronoTrigger::GlobalExceptionHandler.handle_global_exception(ex)
             ensure
               @model_queue << model_name if model_name
             end
@@ -63,14 +64,7 @@ module CronoTrigger
             @executor.post do
               @execution_counter.increment
               begin
-                model.connection_pool.with_connection do
-                  @logger.info "(executor-thread-#{Thread.current.object_id}) Execute #{record.class}-#{record.id}"
-                  begin
-                    record.do_execute
-                  rescue Exception => e
-                    @logger.error(e)
-                  end
-                end
+                process_record(record)
               ensure
                 @execution_counter.decrement
               end
@@ -83,7 +77,19 @@ module CronoTrigger
       end while overflowed_record_ids.empty? && records.any?
     end
 
-    private def unlock_overflowed_records(model, overflowed_record_ids)
+    private 
+
+    def process_record(record)
+      record.class.connection_pool.with_connection do
+        @logger.info "(executor-thread-#{Thread.current.object_id}) Execute #{record.class}-#{record.id}"
+        record.do_execute
+      end
+    rescue Exception => ex
+      @logger.error(ex)
+      CronoTrigger::GlobalExceptionHandler.handle_global_exception(ex)
+    end
+
+    def unlock_overflowed_records(model, overflowed_record_ids)
       model.connection_pool.with_connection do
         unless overflowed_record_ids.empty?
           model.where(id: overflowed_record_ids).crono_trigger_unlock_all!

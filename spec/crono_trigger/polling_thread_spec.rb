@@ -30,6 +30,36 @@ RSpec.describe CronoTrigger::PollingThread do
     ).tap(&:activate_schedule!)
   end
 
+  describe "#run" do
+    let(:stop_flag) { ServerEngine::BlockingFlag.new }
+    let(:model_queue) { Queue.new.tap { |q| q << "Notification" } }
+    let(:executor) { Concurrent::ImmediateExecutor.new }
+    subject(:polling_thread) { CronoTrigger::PollingThread.new(model_queue, stop_flag, Logger.new($stdout), executor, Concurrent::AtomicFixnum.new) }
+
+    before do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+        notification1
+        notification2
+        notification3
+        notification4.update(finished_at: Time.current + 1)
+      end
+    end
+
+    context "any exception is occured" do
+      it "call global_error_handlers" do
+        assert_calling_global_error_handlers
+        expect(Notification).to receive(:executables_with_lock).and_raise(ActiveRecord::StatementInvalid.new)
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 10)) do
+          polling_thread.run
+          sleep CronoTrigger.config.polling_interval + 0.1
+        end
+        stop_flag.set!
+        polling_thread.join
+      end
+    end
+  end
+
   describe "#poll" do
     subject(:polling_thread) { CronoTrigger::PollingThread.new(Queue.new, ServerEngine::BlockingFlag.new, Logger.new($stdout), executor, Concurrent::AtomicFixnum.new) }
 

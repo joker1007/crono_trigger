@@ -11,6 +11,8 @@ module CronoTrigger
         executing: "executing", 
         completed: "completed",
         failed: "failed",
+        retrying: "retrying",
+        aborted: "aborted",
       }
 
       def self.create_with_timestamp!
