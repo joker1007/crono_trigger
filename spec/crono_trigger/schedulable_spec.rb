@@ -213,6 +213,18 @@ RSpec.describe CronoTrigger::Schedulable do
         end
       end
     end
+
+    it "consider finished_at" do
+      Timecop.freeze(Time.utc(2017, 6, 18, 17, 0)) do
+        aggregate_failures do
+          next_execute_at = notification5.send(:calculate_next_execute_at)
+          notification5.finished_at = next_execute_at
+          expect(next_execute_at).to eq(Time.utc(2017, 6, 18, 18, 10))
+          notification5.finished_at = next_execute_at - 1
+          expect(notification5.send(:calculate_next_execute_at)).to be nil
+        end
+      end
+    end
   end
 
   describe "#do_execute" do

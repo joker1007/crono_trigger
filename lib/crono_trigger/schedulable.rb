@@ -257,7 +257,7 @@ module CronoTrigger
     end
 
     def locking?(at: Time.now)
-      self[crono_trigger_column_name(:execute_lock)] > 0 && 
+      self[crono_trigger_column_name(:execute_lock)] > 0 &&
         self[crono_trigger_column_name(:execute_lock)] >= at.to_f - self.class.execute_lock_timeout
     end
 
@@ -291,7 +291,12 @@ module CronoTrigger
         tz = self[crono_trigger_column_name(:timezone)].try { |zn| TZInfo::Timezone.get(zn) }
         base = [now, self[crono_trigger_column_name(:started_at)]].compact.max
         cron_now = tz ? base.in_time_zone(tz) : base
-        Chrono::NextTime.new(now: cron_now, source: self[crono_trigger_column_name(:cron)]).to_time
+        calculated = Chrono::NextTime.new(now: cron_now, source: self[crono_trigger_column_name(:cron)]).to_time
+
+        return calculated unless self[crono_trigger_column_name(:finished_at)]
+        return if calculated > self[crono_trigger_column_name(:finished_at)]
+
+        calculated
       end
     end
 
