@@ -294,7 +294,7 @@ module CronoTrigger
         calculated = Chrono::NextTime.new(now: cron_now, source: self[crono_trigger_column_name(:cron)]).to_time
 
         return calculated unless self[crono_trigger_column_name(:finished_at)]
-        return nil if calculated > self[crono_trigger_column_name(:finished_at)]
+        return if calculated > self[crono_trigger_column_name(:finished_at)]
 
         calculated
       end
