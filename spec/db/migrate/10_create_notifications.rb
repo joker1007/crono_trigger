@@ -13,6 +13,7 @@ class CreateNotifications < ActiveRecord::VERSION::MAJOR >= 5 ? ActiveRecord::Mi
       t.string :last_error_name
       t.string :last_error_reason
       t.datetime :last_error_time
+      t.string :current_cycle_id, null: false
       t.integer :retry_count, default: 0, null: false
 
       if ENV["NO_TIMESTAMP"] != "true"
