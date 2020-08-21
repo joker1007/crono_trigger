@@ -63,6 +63,10 @@ RSpec.describe CronoTrigger::Schedulable do
         expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 30))
       end
     end
+
+    it "set current_cycle_id" do
+      expect(notification1.current_cycle_id).to be_a(String).and(be_present)
+    end
   end
 
   describe "before_update callback" do
@@ -233,6 +237,8 @@ RSpec.describe CronoTrigger::Schedulable do
         notification1
       end
 
+      current_cycle_id = notification1.current_cycle_id
+
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
         aggregate_failures do
           expect(CronoTrigger::Models::Execution.count).to eq(0)
@@ -252,6 +258,7 @@ RSpec.describe CronoTrigger::Schedulable do
           expect(Notification.results).to eq({notification1.id => "executed"})
           expect(CronoTrigger::Models::Execution.count).to eq(1)
           expect(CronoTrigger::Models::Execution.last.status).to eq("completed")
+          expect(notification1.current_cycle_id).not_to eq(current_cycle_id)
         end
       end
     end
@@ -263,6 +270,7 @@ RSpec.describe CronoTrigger::Schedulable do
         end
 
         allow(notification1).to receive(:execute).and_raise("Error")
+        current_cycle_id = notification1.current_cycle_id
 
         Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
           aggregate_failures do
@@ -280,6 +288,7 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.last_executed_at).to be_nil
             expect(notification1.execute_lock).to eq(0)
             expect(notification1.retry_count).to eq(1)
+            expect(notification1.current_cycle_id).to eq(current_cycle_id)
             expect(Notification.results).to be_empty
 
             execution = CronoTrigger::Models::Execution.last
@@ -301,6 +310,8 @@ RSpec.describe CronoTrigger::Schedulable do
           raise "Not reach"
         end
 
+        current_cycle_id = notification1.current_cycle_id
+
         Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
           aggregate_failures do
             expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
@@ -314,6 +325,7 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.last_executed_at).to be_nil
             expect(notification1.execute_lock).to eq(0)
             expect(notification1.retry_count).to eq(0)
+            expect(notification1.current_cycle_id).not_to eq(current_cycle_id)
             expect(Notification.results).to be_empty
 
             execution = CronoTrigger::Models::Execution.last
@@ -335,6 +347,8 @@ RSpec.describe CronoTrigger::Schedulable do
           raise "Not reach"
         end
 
+        current_cycle_id = notification1.current_cycle_id
+
         Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
           aggregate_failures do
             expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
@@ -350,6 +364,7 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.last_executed_at).to be_nil
             expect(notification1.execute_lock).to eq(0)
             expect(notification1.retry_count).to eq(1)
+            expect(notification1.current_cycle_id).to eq(current_cycle_id)
             expect(Notification.results).to be_empty
 
             execution = CronoTrigger::Models::Execution.last
@@ -371,6 +386,8 @@ RSpec.describe CronoTrigger::Schedulable do
           raise "Not reach"
         end
 
+        current_cycle_id = notification1.current_cycle_id
+
         Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
           aggregate_failures do
             expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
@@ -385,6 +402,7 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.last_executed_at).to eq(Time.utc(2017, 6, 18, 1, 0))
             expect(notification1.execute_lock).to eq(0)
             expect(notification1.retry_count).to eq(0)
+            expect(notification1.current_cycle_id).not_to eq(current_cycle_id)
             expect(Notification.results).to be_empty
 
             execution = CronoTrigger::Models::Execution.last
@@ -394,7 +412,7 @@ RSpec.describe CronoTrigger::Schedulable do
       end
     end
 
-    context "#execute throw :ok" do
+    context "#execute throw :ok_without_reset" do
       it "call #execute and update next_execute_at and last_executed_at" do
         Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
           notification1
@@ -404,6 +422,8 @@ RSpec.describe CronoTrigger::Schedulable do
           throw :ok_without_reset
           raise "Not reach"
         end
+
+        current_cycle_id = notification1.current_cycle_id
 
         Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
           aggregate_failures do
@@ -419,6 +439,7 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.last_executed_at).to be_nil
             expect(notification1.execute_lock).to be > 0
             expect(notification1.retry_count).to eq(0)
+            expect(notification1.current_cycle_id).to eq(current_cycle_id)
             expect(Notification.results).to be_empty
 
             notification1.reset!
@@ -427,6 +448,7 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.last_executed_at).to eq(Time.utc(2017, 6, 18, 1, 0))
             expect(notification1.execute_lock).to eq(0)
             expect(notification1.retry_count).to eq(0)
+            expect(notification1.current_cycle_id).not_to eq(current_cycle_id)
 
             execution = CronoTrigger::Models::Execution.last
             expect(execution.status).to eq("completed")
@@ -445,6 +467,8 @@ RSpec.describe CronoTrigger::Schedulable do
           raise "error"
         end
 
+        current_cycle_id = notification1.current_cycle_id
+
         Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
           aggregate_failures do
             expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
@@ -462,6 +486,7 @@ RSpec.describe CronoTrigger::Schedulable do
             expect(notification1.last_executed_at).to be_nil
             expect(notification1.execute_lock).to eq(0)
             expect(notification1.retry_count).to eq(1)
+            expect(notification1.current_cycle_id).to eq(current_cycle_id)
             expect(notification1.last_error_name).to eq("RuntimeError")
             expect(notification1.last_error_reason).to eq("error")
             expect(notification1.last_error_time).to eq(Time.utc(2017, 6, 18, 1, 0))

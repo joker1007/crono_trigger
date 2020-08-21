@@ -56,6 +56,7 @@ module CronoTrigger
         rel
       end
 
+      before_create :set_current_cyctle_id
       before_update :update_next_execute_at_if_update_cron
 
       validate :validate_cron_format
@@ -207,6 +208,10 @@ module CronoTrigger
         attributes.merge!(retry_count: 0)
       end
 
+      if self.class.column_names.include?(crono_trigger_column_name(:current_cycle_id))
+        attributes.merge!(crono_trigger_column_name(:current_cycle_id) => SecureRandom.uuid)
+      end
+
       merge_updated_at_for_crono_trigger!(attributes, now)
       update_columns(attributes)
     end
@@ -297,6 +302,13 @@ module CronoTrigger
         return if calculated > self[crono_trigger_column_name(:finished_at)]
 
         calculated
+      end
+    end
+
+    def set_current_cyctle_id
+      if self.class.column_names.include?(crono_trigger_column_name(:current_cycle_id)) &&
+          self[crono_trigger_column_name(:current_cycle_id)].nil?
+        self[crono_trigger_column_name(:current_cycle_id)] = SecureRandom.uuid
       end
     end
 
