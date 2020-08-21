@@ -160,19 +160,20 @@ Usage: crono_trigger [options] MODEL [MODEL..]
 
 ### Columns
 
-|name             |type    |required|rename|description                                                                                                                                                  |
-|-----------------|--------|--------|------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|cron             |string  |no      |no    |Recurring schedule formatted by cron style                                                                                                                   |
-|next_execute_at  |datetime|yes     |yes   |Timestamp of next execution. Worker executes task if this column <= now                                                                                      |
-|last_executed_at |datetime|no      |yes   |Timestamp of last execution                                                                                                                                  |
-|timezone         |datetime|no      |yes   |Timezone name (Parsed by tzinfo)                                                                                                                             |
-|execute_lock     |integer |yes     |yes   |Timestamp of fetching record in order to hide record from other transaction during execute lock timeout. <br> when execution complete this column is reset to 0|
-|started_at       |datetime|no      |yes   |Timestamp of schedule activated                                                                                                                              |
-|finished_at      |datetime|no      |yes   |Timestamp of schedule deactivated                                                                                                                            |
-|last_error_name  |string  |no      |no    |Class name of last error                                                                                                                                     |
-|last_error_reason|string  |no      |no    |Error message of last error                                                                                                                                  |
-|last_error_time  |datetime|no      |no    |Timestamp of last error occured                                                                                                                              |
-|retry_count      |integer |no      |no    |Retry count. <br> If execution succeed retry_count is reset to 0                                                                                                  |
+| name              | type     | required | rename | description                                                                                                                                                     |
+| ----------------- | -------- | -------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------   |
+| cron              | string   | no       | no     | Recurring schedule formatted by cron style                                                                                                                      |
+| next_execute_at   | datetime | yes      | yes    | Timestamp of next execution. Worker executes task if this column <= now                                                                                         |
+| last_executed_at  | datetime | no       | yes    | Timestamp of last execution                                                                                                                                     |
+| timezone          | datetime | no       | yes    | Timezone name (Parsed by tzinfo)                                                                                                                                |
+| execute_lock      | integer  | yes      | yes    | Timestamp of fetching record in order to hide record from other transaction during execute lock timeout. <br> when execution complete this column is reset to 0 |
+| started_at        | datetime | no       | yes    | Timestamp of schedule activated                                                                                                                                 |
+| finished_at       | datetime | no       | yes    | Timestamp of schedule deactivated                                                                                                                               |
+| last_error_name   | string   | no       | no     | Class name of last error                                                                                                                                        |
+| last_error_reason | string   | no       | no     | Error message of last error                                                                                                                                     |
+| last_error_time   | datetime | no       | no     | Timestamp of last error occured                                                                                                                                 |
+| retry_count       | integer  | no       | no     | Retry count. <br> If execution succeed retry_count is reset to 0                                                                                                |
+| current_cycle_id  | string   | no       | yes    | UUID that is updated when the schedule is resetted successfully                                                                                                 |
 
 You can rename some columns.
 ex. `crono_trigger_options[:next_execute_at_column_name] = "next_time"`
