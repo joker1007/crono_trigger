@@ -56,7 +56,7 @@ module CronoTrigger
         rel
       end
 
-      before_create :set_current_cyctle_id
+      before_create :set_current_cycle_id
       before_update :update_next_execute_at_if_update_cron
 
       validate :validate_cron_format
@@ -305,7 +305,7 @@ module CronoTrigger
       end
     end
 
-    def set_current_cyctle_id
+    def set_current_cycle_id
       if self.class.column_names.include?(crono_trigger_column_name(:current_cycle_id)) &&
           self[crono_trigger_column_name(:current_cycle_id)].nil?
         self[crono_trigger_column_name(:current_cycle_id)] = SecureRandom.uuid
