@@ -67,7 +67,7 @@ end
 
 CronoTrigger.load_config(options[:config], options[:env]) if options[:config]
 
-%i(polling_thread polling_interval execute_thread).each do |name|
+%i(worker_id polling_thread polling_interval execute_thread).each do |name|
   CronoTrigger.config[name] = options[name] if options[name]
 end
 
