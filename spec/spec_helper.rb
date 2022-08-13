@@ -19,14 +19,16 @@ case ENV["DB"]
 when "mysql"
   ActiveRecord::Base.establish_connection(
     adapter: "mysql2",
-    database: "test"
+    database: "test",
+    pool: CronoTrigger.config.executor_thread + 5,
   )
 else
   db_path = File.join(__dir__, "testdb.sqlite3")
   File.unlink(db_path) if File.exist?(db_path)
   ActiveRecord::Base.establish_connection(
     adapter: "sqlite3",
-    database: File.join(__dir__, "testdb.sqlite3")
+    database: File.join(__dir__, "testdb.sqlite3"),
+    pool: CronoTrigger.config.executor_thread + 5,
   )
 
   RSpec.configure do |config|

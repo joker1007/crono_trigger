@@ -77,7 +77,7 @@ module CronoTrigger
       end while overflowed_record_ids.empty? && records.any?
     end
 
-    private 
+    private
 
     def process_record(record)
       record.class.connection_pool.with_connection do
