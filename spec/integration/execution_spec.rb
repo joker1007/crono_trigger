@@ -44,4 +44,35 @@ RSpec.describe "Execute records" do
       worker.stop
     end
   end
+
+  context "when all the executable records are locked" do
+    around do |example|
+      original_polling_interval = CronoTrigger.config.polling_interval
+      CronoTrigger.config.polling_interval = 2
+
+      example.run
+
+      CronoTrigger.config.polling_interval = original_polling_interval
+    end
+
+    before do
+      now = Time.now
+      Notification.create!(name: 'notification', started_at: now, next_execute_at: now)
+    end
+
+    it "processes all the records without returning from #poll" do
+      allow_any_instance_of(Notification).to receive(:locking?) do
+        allow_any_instance_of(Notification).to receive(:locking?) { false }
+        true
+      end
+
+      worker = worker_class.new
+      Thread.start { worker.run }
+      sleep CronoTrigger.config.polling_interval + 1
+
+      expect(Notification.executables).not_to be_exists
+    ensure
+      worker.stop
+    end
+  end
 end

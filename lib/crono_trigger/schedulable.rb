@@ -65,6 +65,7 @@ module CronoTrigger
     module ClassMethods
       def executables_with_lock(limit: CronoTrigger.config.executor_thread * 3)
         ids = executables(limit: limit).pluck(:id)
+        maybe_has_next = !ids.empty?
         records = []
         ids.each do |id|
           transaction do
@@ -75,7 +76,7 @@ module CronoTrigger
             end
           end
         end
-        records
+        [records, maybe_has_next]
       end
 
       def crono_trigger_column_name(name)

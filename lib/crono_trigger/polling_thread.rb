@@ -51,12 +51,12 @@ module CronoTrigger
 
     def poll(model)
       @logger.info "(polling-thread-#{Thread.current.object_id}) Poll #{model}"
-      records = []
+      maybe_has_next = true
       overflowed_record_ids = []
 
-      begin
-        model.connection_pool.with_connection do
-          records = model.executables_with_lock
+      while maybe_has_next && overflowed_record_ids.empty?
+        records, maybe_has_next = model.connection_pool.with_connection do
+          model.executables_with_lock
         end
 
         records.each do |record|
@@ -74,7 +74,7 @@ module CronoTrigger
           end
         end
         unlock_overflowed_records(model, overflowed_record_ids)
-      end while overflowed_record_ids.empty? && records.any?
+      end
     end
 
     private
