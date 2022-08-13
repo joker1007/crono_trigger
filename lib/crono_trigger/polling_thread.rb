@@ -50,7 +50,7 @@ module CronoTrigger
     end
 
     def poll(model)
-      @logger.debug "(polling-thread-#{Thread.current.object_id}) Poll #{model}"
+      @logger.info "(polling-thread-#{Thread.current.object_id}) Poll #{model}"
       records = []
       overflowed_record_ids = []
 
