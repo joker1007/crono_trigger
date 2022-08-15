@@ -139,35 +139,40 @@ RSpec.describe CronoTrigger::Schedulable do
       end
 
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 15)) do
-        records = Notification.executables_with_lock(limit: 1)
+        records, maybe_has_next = Notification.executables_with_lock(limit: 1)
         aggregate_failures do
           expect(records).to match_array([notification2])
           expect(records[0].reload.execute_lock).to eq(Time.current.to_i)
+          expect(maybe_has_next).to be true
         end
 
-        records = Notification.executables_with_lock(limit: 1)
+        records, maybe_has_next = Notification.executables_with_lock(limit: 1)
         aggregate_failures do
           expect(records).to match_array([notification3])
           expect(records[0].reload.execute_lock).to eq(Time.current.to_i)
+          expect(maybe_has_next).to be true
         end
 
-        records = Notification.executables_with_lock(limit: 1)
+        records, maybe_has_next = Notification.executables_with_lock(limit: 1)
         aggregate_failures do
           expect(records).to be_empty
+          expect(maybe_has_next).to be false
         end
       end
 
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 25, 1)) do
-        records = Notification.executables_with_lock(limit: 1)
+        records, maybe_has_next = Notification.executables_with_lock(limit: 1)
         aggregate_failures do
           expect(records).to match_array([notification2])
           expect(records[0].reload.execute_lock).to eq(Time.current.to_i)
+          expect(maybe_has_next).to be true
         end
 
-        records = Notification.executables_with_lock(limit: 1)
+        records, maybe_has_next = Notification.executables_with_lock(limit: 1)
         aggregate_failures do
           expect(records).to match_array([notification3])
           expect(records[0].reload.execute_lock).to eq(Time.current.to_i)
+          expect(maybe_has_next).to be true
         end
       end
     end
