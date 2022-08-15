@@ -5,6 +5,9 @@ module CronoTrigger
       @stop_flag = stop_flag
       @logger = logger
       @executor = executor
+      if @executor.fallback_policy != :caller_runs
+        raise ArgumentError, "executor's fallback policies except for :caller_runs are not supported"
+      end
       @execution_counter = execution_counter
       @quiet = Concurrent::AtomicBoolean.new(false)
     end
@@ -51,29 +54,23 @@ module CronoTrigger
 
     def poll(model)
       @logger.info "(polling-thread-#{Thread.current.object_id}) Poll #{model}"
-      maybe_has_next = true
-      overflowed_record_ids = []
 
-      while maybe_has_next && overflowed_record_ids.empty?
+      maybe_has_next = true
+      while maybe_has_next
         records, maybe_has_next = model.connection_pool.with_connection do
           model.executables_with_lock
         end
 
         records.each do |record|
-          begin
-            @executor.post do
-              @execution_counter.increment
-              begin
-                process_record(record)
-              ensure
-                @execution_counter.decrement
-              end
+          @executor.post do
+            @execution_counter.increment
+            begin
+              process_record(record)
+            ensure
+              @execution_counter.decrement
             end
-          rescue Concurrent::RejectedExecutionError
-            overflowed_record_ids << record.id
           end
         end
-        unlock_overflowed_records(model, overflowed_record_ids)
       end
     end
 
@@ -87,17 +84,6 @@ module CronoTrigger
     rescue Exception => ex
       @logger.error(ex)
       CronoTrigger::GlobalExceptionHandler.handle_global_exception(ex)
-    end
-
-    def unlock_overflowed_records(model, overflowed_record_ids)
-      model.connection_pool.with_connection do
-        unless overflowed_record_ids.empty?
-          model.where(id: overflowed_record_ids).crono_trigger_unlock_all!
-        end
-      end
-    rescue ActiveRecord::ConnectionNotEstablished, ActiveRecord::LockWaitTimeout, ActiveRecord::StatementTimeout, ActiveRecord::Deadlocked
-      sleep 1
-      retry
     end
   end
 end

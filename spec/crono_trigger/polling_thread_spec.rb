@@ -30,10 +30,19 @@ RSpec.describe CronoTrigger::PollingThread do
     ).tap(&:activate_schedule!)
   end
 
+  let(:immediate_executor_class_with_fallabck_policy) do
+    Class.new(Concurrent::ImmediateExecutor) do
+      def initialize(*args, **kwargs)
+        super
+        @fallback_policy = :caller_runs
+      end
+    end
+  end
+
   describe "#run" do
     let(:stop_flag) { ServerEngine::BlockingFlag.new }
     let(:model_queue) { Queue.new.tap { |q| q << "Notification" } }
-    let(:executor) { Concurrent::ImmediateExecutor.new }
+    let(:executor) { immediate_executor_class_with_fallabck_policy.new }
     subject(:polling_thread) { CronoTrigger::PollingThread.new(model_queue, stop_flag, Logger.new($stdout), executor, Concurrent::AtomicFixnum.new) }
 
     before do
@@ -63,7 +72,7 @@ RSpec.describe CronoTrigger::PollingThread do
   describe "#poll" do
     subject(:polling_thread) { CronoTrigger::PollingThread.new(Queue.new, ServerEngine::BlockingFlag.new, Logger.new($stdout), executor, Concurrent::AtomicFixnum.new) }
 
-    let(:executor) { Concurrent::ImmediateExecutor.new }
+    let(:executor) { immediate_executor_class_with_fallabck_policy.new }
 
     it "execute model#execute method" do
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
@@ -81,25 +90,28 @@ RSpec.describe CronoTrigger::PollingThread do
     end
 
     context "overflow executor queue size" do
-      let(:executor) { Concurrent::ThreadPoolExecutor.new(max_threads: 1, max_queue: 1) }
+      let(:executor) { Concurrent::ThreadPoolExecutor.new(max_threads: 1, max_queue: 1, fallback_policy: :caller_runs) }
 
       it "execute model#execute method" do
         Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
-          notification1
-          notification2
-          notification3
+          # This notification will be processed by the caller
+          notification1 # next_execute_at: 01:30:00 UTC
+
+          # The folollowing notifications will be processed by the executor threads
+          notification2 # next_execute_at: 01:10:00 UTC
+          notification3 # next_execute_at: 01:10:00 UTC
+
+          # This notification will never be processed
           notification4.update(finished_at: Time.current + 1)
         end
 
-        expect(Notification).to receive(:crono_trigger_unlock_all!).once.and_call_original
         Timecop.freeze(Time.utc(2017, 6, 18, 1, 30)) do
           expect(Notification.executables).to match_array([notification1, notification2, notification3])
           expect {
             polling_thread.poll(Notification)
             executor.shutdown
             executor.wait_for_termination
-          }.to change { Notification.results }.from({}).to({notification2.id => "executed", notification3.id => "executed"})
-          expect(notification1.reload.execute_lock).to eq(0)
+          }.to change { Notification.results }.from({}).to({notification2.id => "executed", notification3.id => "executed", notification1.id => "executed"})
         end
       end
     end
