@@ -30,7 +30,10 @@ opt_parser = OptionParser.new do |opts|
     options[:polling_interval] = i
   end
 
-  opts.on("-c", "--concurrency=SIZE", Integer, "Execute thread size (Default: 25)") do |i|
+  opts.on("-c", "--concurrency=SIZE", Integer, "Execute thread size (Default: 25)",
+    "Note that, when the execution queue is full, polling threads also process",
+    "records unless this value is 1, so the actual concurrency can be greater",
+    "than this value.") do |i|
     options[:executor_thread] = i
   end
 

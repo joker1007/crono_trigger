@@ -5,7 +5,7 @@ module CronoTrigger
       @stop_flag = stop_flag
       @logger = logger
       @executor = executor
-      if @executor.fallback_policy != :caller_runs
+      if @executor.fallback_policy != :caller_runs && !@executor.is_a?(Concurrent::ImmediateExecutor)
         raise ArgumentError, "executor's fallback policies except for :caller_runs are not supported"
       end
       @execution_counter = execution_counter

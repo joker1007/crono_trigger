@@ -20,12 +20,22 @@ module CronoTrigger
       @model_names.each do |model_name|
         @model_queue << model_name
       end
-      @executor = Concurrent::ThreadPoolExecutor.new(
-        min_threads: 1,
-        max_threads: CronoTrigger.config.executor_thread,
-        max_queue: CronoTrigger.config.executor_thread * 2,
-        fallback_policy: :caller_runs,
-      )
+      if CronoTrigger.config.executor_thread == 1
+        # Don't use the thread pool executor, with which the caller can also
+        # process tasks, because the reason why executor_thread is set to 1
+        # might be that the application is not thread-safe.
+        @executor = Concurrent::ImmediateExecutor.new
+        def @executor.queue_length
+          0
+        end
+      else
+        @executor = Concurrent::ThreadPoolExecutor.new(
+          min_threads: 1,
+          max_threads: CronoTrigger.config.executor_thread,
+          max_queue: CronoTrigger.config.executor_thread * 2,
+          fallback_policy: :caller_runs,
+        )
+      end
       @execution_counter = Concurrent::AtomicFixnum.new
       @logger = Logger.new(STDOUT) unless @logger
       ActiveRecord::Base.logger = @logger
@@ -96,9 +106,9 @@ module CronoTrigger
       CronoTrigger::Models::Worker.connection_pool.with_connection do
         begin
           worker_record = CronoTrigger::Models::Worker.find_or_initialize_by(worker_id: @crono_trigger_worker_id)
-          worker_record.max_thread_size = @executor.max_length
-          worker_record.current_executing_size = @executor.scheduled_task_count
-          worker_record.current_queue_size = @execution_counter.value
+          worker_record.max_thread_size = CronoTrigger.config.executor_thread
+          worker_record.current_executing_size = @execution_counter.value
+          worker_record.current_queue_size = @executor.queue_length
           worker_record.executor_status = executor_status
           worker_record.polling_model_names = @model_names
           worker_record.last_heartbeated_at = Time.current

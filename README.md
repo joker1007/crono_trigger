@@ -150,12 +150,17 @@ And other options is following.
 
 ```
 $ crono_trigger --help
-Usage: crono_trigger [options] MODEL [MODEL..]
+Usage: crono_trigger [options] [MODEL..]
+  If MODEL is not given, Search classes including CronoTrigger::Schedulable module automatically.
+    -w, --worker-id=ID               Worker ID (default: First local ip address which is not loopback
     -f, --config-file=CONFIG         Config file (ex. ./crono_trigger.rb)
     -e, --environment=ENV            Set environment name (ex. development, production)
-    -p, --polling-thread=SIZE        Polling thread size (Default: 1)
+    -p, --polling-thread=SIZE        Polling thread size (Default: Min of (target model count or processor_count)
     -i, --polling-interval=SECOND    Polling interval seconds (Default: 5)
     -c, --concurrency=SIZE           Execute thread size (Default: 25)
+                                     Note that, when the execution queue is full, polling threads also process
+                                     records unless this value is 1, so the actual concurrency can be greater
+                                     than this value.
     -l, --log=LOGFILE                Set log output destination (Default: STDOUT or ./crono_trigger.log if daemonize is true)
         --log-level=LEVEL            Set log level (Default: info)
     -d, --daemonize                  Daemon mode

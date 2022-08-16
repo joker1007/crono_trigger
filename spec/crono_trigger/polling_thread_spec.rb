@@ -30,19 +30,10 @@ RSpec.describe CronoTrigger::PollingThread do
     ).tap(&:activate_schedule!)
   end
 
-  let(:immediate_executor_class_with_fallabck_policy) do
-    Class.new(Concurrent::ImmediateExecutor) do
-      def initialize(*args, **kwargs)
-        super
-        @fallback_policy = :caller_runs
-      end
-    end
-  end
-
   describe "#run" do
     let(:stop_flag) { ServerEngine::BlockingFlag.new }
     let(:model_queue) { Queue.new.tap { |q| q << "Notification" } }
-    let(:executor) { immediate_executor_class_with_fallabck_policy.new }
+    let(:executor) { Concurrent::ImmediateExecutor.new }
     subject(:polling_thread) { CronoTrigger::PollingThread.new(model_queue, stop_flag, Logger.new($stdout), executor, Concurrent::AtomicFixnum.new) }
 
     before do
@@ -72,7 +63,7 @@ RSpec.describe CronoTrigger::PollingThread do
   describe "#poll" do
     subject(:polling_thread) { CronoTrigger::PollingThread.new(Queue.new, ServerEngine::BlockingFlag.new, Logger.new($stdout), executor, Concurrent::AtomicFixnum.new) }
 
-    let(:executor) { immediate_executor_class_with_fallabck_policy.new }
+    let(:executor) { Concurrent::ImmediateExecutor.new }
 
     it "execute model#execute method" do
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
