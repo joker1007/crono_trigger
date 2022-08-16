@@ -75,4 +75,23 @@ RSpec.describe "Execute records" do
       worker.stop
     end
   end
+
+  context "when the workers receive SIGTERM while processing records" do
+    before do
+      now = Time.now
+      Notification.create!(name: 'notification', started_at: now, next_execute_at: now)
+    end
+
+    it "stops the worker" do
+      # Make maybe_has_next true
+      allow_any_instance_of(Notification).to receive(:locking?) { true }
+
+      worker = worker_class.new
+      Thread.start do
+        sleep CronoTrigger.config.polling_interval + 1
+        worker.stop
+      end
+      Timeout.timeout(CronoTrigger.config.polling_interval + 2) { worker.run }
+    end
+  end
 end
