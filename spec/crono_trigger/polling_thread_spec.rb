@@ -32,9 +32,12 @@ RSpec.describe CronoTrigger::PollingThread do
 
   let(:immediate_executor_class_with_fallabck_policy) do
     Class.new(Concurrent::ImmediateExecutor) do
-      def initialize(*args, **kwargs)
-        super
-        @fallback_policy = :caller_runs
+      def queue_length
+        0
+      end
+
+      def remaining_capacity
+        CronoTrigger.config.executor_thread * 2
       end
     end
   end

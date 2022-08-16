@@ -24,7 +24,6 @@ module CronoTrigger
         min_threads: 1,
         max_threads: CronoTrigger.config.executor_thread,
         max_queue: CronoTrigger.config.executor_thread * 2,
-        fallback_policy: :caller_runs,
       )
       @execution_counter = Concurrent::AtomicFixnum.new
       @logger = Logger.new(STDOUT) unless @logger
