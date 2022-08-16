@@ -56,7 +56,7 @@ module CronoTrigger
       @logger.info "(polling-thread-#{Thread.current.object_id}) Poll #{model}"
 
       maybe_has_next = true
-      while maybe_has_next
+      while maybe_has_next && !@stop_flag.set?
         records, maybe_has_next = model.connection_pool.with_connection do
           model.executables_with_lock
         end
