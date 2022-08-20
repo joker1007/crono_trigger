@@ -58,7 +58,7 @@ module CronoTrigger
       maybe_has_next = true
       while maybe_has_next && !@stop_flag.set?
         records, maybe_has_next = model.connection_pool.with_connection do
-          model.executables_with_lock
+          model.executables_with_lock(limit: CronoTrigger.config.fetch_records || CronoTrigger.config.executor_thread * 3)
         end
 
         records.each do |record|
