@@ -24,7 +24,7 @@ RSpec.describe "Execute records" do
 
     before do
       allow_any_instance_of(Notification).to receive(:execute) do
-        sleep 0.5
+        sleep 1
       end
 
       now = Time.now
@@ -37,7 +37,7 @@ RSpec.describe "Execute records" do
     it "processes all the records without returning from #poll" do
       worker = worker_class.new
       Thread.start { worker.run }
-      sleep CronoTrigger.config.polling_interval + 3
+      sleep CronoTrigger.config.polling_interval + 2
 
       expect(Notification.executables).not_to be_exists
     ensure

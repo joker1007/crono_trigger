@@ -5,6 +5,9 @@ module CronoTrigger
       @stop_flag = stop_flag
       @logger = logger
       @executor = executor
+      if @executor.fallback_policy != :caller_runs
+        raise ArgumentError, "executor's fallback policies except for :caller_runs are not supported"
+      end
       @execution_counter = execution_counter
       @quiet = Concurrent::AtomicBoolean.new(false)
     end
@@ -52,15 +55,12 @@ module CronoTrigger
     def poll(model)
       @logger.info "(polling-thread-#{Thread.current.object_id}) Poll #{model}"
 
-      queue_empty_event = Concurrent::Event.new
       maybe_has_next = true
       while maybe_has_next && !@stop_flag.set?
-        queue_empty_event.wait unless @executor.queue_length.zero?
         records, maybe_has_next = model.connection_pool.with_connection do
-          model.executables_with_lock(limit: @executor.remaining_capacity)
+          model.executables_with_lock
         end
 
-        queue_empty_event.reset
         records.each do |record|
           @executor.post do
             @execution_counter.increment
@@ -69,8 +69,6 @@ module CronoTrigger
             ensure
               @execution_counter.decrement
             end
-
-            queue_empty_event.set if @executor.queue_length.zero?
           end
         end
       end
