@@ -73,6 +73,17 @@ RSpec.describe CronoTrigger::PollingThread do
     subject(:polling_thread) { CronoTrigger::PollingThread.new(Queue.new, ServerEngine::BlockingFlag.new, Logger.new($stdout), executor, Concurrent::AtomicFixnum.new) }
 
     let(:executor) { immediate_executor_class_with_fallabck_policy.new }
+    let(:processed_records_from_instrument) { [] }
+
+    around do |example|
+      ActiveSupport::Notifications.subscribe(CronoTrigger::Events::PROCESS_RECORD) do |*_, payload|
+        processed_records_from_instrument << payload[:record]
+      end
+
+      example.run
+
+      ActiveSupport::Notifications.unsubscribe(CronoTrigger::Events::PROCESS_RECORD)
+    end
 
     it "execute model#execute method" do
       Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
@@ -86,6 +97,7 @@ RSpec.describe CronoTrigger::PollingThread do
         expect {
           polling_thread.poll(Notification)
         }.to change { Notification.results }.from({}).to({notification2.id => "executed", notification3.id => "executed"})
+        expect(processed_records_from_instrument).to contain_exactly(notification2, notification3)
       end
     end
 
@@ -112,6 +124,7 @@ RSpec.describe CronoTrigger::PollingThread do
             executor.shutdown
             executor.wait_for_termination
           }.to change { Notification.results }.from({}).to({notification2.id => "executed", notification3.id => "executed", notification1.id => "executed"})
+          expect(processed_records_from_instrument).to contain_exactly(notification1, notification2, notification3)
         end
       end
     end
@@ -137,6 +150,7 @@ RSpec.describe CronoTrigger::PollingThread do
               end
               th.join
             }.to change { Notification.results }.from({}).to({notification2.id => "executed", notification3.id => "executed"})
+            expect(processed_records_from_instrument).to contain_exactly(notification2, notification3)
           end
         end
       end

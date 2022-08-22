@@ -77,9 +77,11 @@ module CronoTrigger
     private
 
     def process_record(record)
-      record.class.connection_pool.with_connection do
-        @logger.info "(executor-thread-#{Thread.current.object_id}) Execute #{record.class}-#{record.id}"
-        record.do_execute
+      ActiveSupport::Notifications.instrument(CronoTrigger::Events::PROCESS_RECORD, { record: record }) do
+        record.class.connection_pool.with_connection do
+          @logger.info "(executor-thread-#{Thread.current.object_id}) Execute #{record.class}-#{record.id}"
+          record.do_execute
+        end
       end
     rescue Exception => ex
       @logger.error(ex)
