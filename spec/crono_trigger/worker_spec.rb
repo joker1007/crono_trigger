@@ -85,6 +85,8 @@ RSpec.describe CronoTrigger::Worker do
 
       it "triggers CronoTrigger::Events::MONITOR event" do
         worker_run
+
+        # There is no record
         sleep 1
         expect(payloads_from_instrument.last).to eq({
           model_name: "Notification",
@@ -93,6 +95,18 @@ RSpec.describe CronoTrigger::Worker do
           max_latency_sec: 0,
         })
 
+        # There are only records that are not executable
+        future_time = Time.now + 60
+        Notification.create!(name: 'future_notification', started_at: future_time, next_execute_at: future_time)
+        sleep 1
+        expect(payloads_from_instrument.last).to eq({
+          model_name: "Notification",
+          executable_count: 0,
+          max_lock_duration_sec: 0,
+          max_latency_sec: 0,
+        })
+
+        # There are executable records
         Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
           now = Time.now
           next_execute_at = now - 100
