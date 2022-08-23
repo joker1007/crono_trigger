@@ -35,6 +35,19 @@ RSpec.describe "Execute records" do
     end
 
     it "processes all the records without returning from #poll" do
+      expect(Notification).to receive(:executables_with_lock).exactly(3).times.and_call_original # 76 / 25 * 3 + 1(last one) + 1(maybe_has_next)
+      worker = worker_class.new
+      Thread.start { worker.run }
+      sleep CronoTrigger.config.polling_interval + 2
+
+      expect(Notification.executables).not_to be_exists
+    ensure
+      worker.stop
+    end
+
+    it "fetches `fetch_records` size at once in #poll" do
+      allow(CronoTrigger.config).to receive(:fetch_records) { 5 }
+      expect(Notification).to receive(:executables_with_lock).exactly(17).times.and_call_original # 76 / 5 + 1(last one) + 1(maybe_has_next)
       worker = worker_class.new
       Thread.start { worker.run }
       sleep CronoTrigger.config.polling_interval + 2

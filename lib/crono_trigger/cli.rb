@@ -34,6 +34,10 @@ opt_parser = OptionParser.new do |opts|
     options[:executor_thread] = i
   end
 
+  opts.on("-r", "--fetch-records=SIZE", Integer, "Record count fetched by polling thread (Default: concurrency * 3)") do |i|
+    options[:fetch_records] = i
+  end
+
   opts.on("-l", "--log=LOGFILE", "Set log output destination (Default: STDOUT or ./crono_trigger.log if daemonize is true)") do |log|
     options[:log] = log
   end
@@ -67,7 +71,7 @@ end
 
 CronoTrigger.load_config(options[:config], options[:env]) if options[:config]
 
-%i(worker_id polling_thread polling_interval executor_thread).each do |name|
+%i(worker_id polling_thread polling_interval executor_thread fetch_records).each do |name|
   CronoTrigger.config[name] = options[name] if options[name]
 end
 
