@@ -156,7 +156,7 @@ Usage: crono_trigger [options] MODEL [MODEL..]
     -p, --polling-thread=SIZE        Polling thread size (Default: 1)
     -i, --polling-interval=SECOND    Polling interval seconds (Default: 5)
     -c, --concurrency=SIZE           Execute thread size (Default: 25)
-    -r, --fetch-records=SIZE         Fetch record count by polling thread (Default: concurrency * 3)
+    -r, --fetch-records=SIZE         Record count fetched by polling thread (Default: concurrency * 3)
     -l, --log=LOGFILE                Set log output destination (Default: STDOUT or ./crono_trigger.log if daemonize is true)
         --log-level=LEVEL            Set log level (Default: info)
     -d, --daemonize                  Daemon mode
