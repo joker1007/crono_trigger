@@ -225,7 +225,7 @@ This event is triggered every 20 seconds by the first active worker in worker_id
 
 ### CronoTrigger::Events::PROCESS_RECORD
 
-This event is triggered every time a record finish being processed.
+This event is triggered every time a record finishes being processed.
 
 | Key     | Value                |
 | ------- | -------------------- |
