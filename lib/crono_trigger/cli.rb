@@ -34,7 +34,7 @@ opt_parser = OptionParser.new do |opts|
     options[:executor_thread] = i
   end
 
-  opts.on("-r", "--fetch-records=SIZE", Integer, "Fetch record count by polling thread (Default: concurrency * 3)") do |i|
+  opts.on("-r", "--fetch-records=SIZE", Integer, "Record count fetched by polling thread (Default: concurrency * 3)") do |i|
     options[:fetch_records] = i
   end
 
