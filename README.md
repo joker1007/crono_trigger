@@ -208,6 +208,30 @@ mount CronoTrigger::Web => '/crono_trigger'
 This gem has rollbar plugin.
 If `crono_trigger/rollbar` is required, Add Rollbar logging process to `CronoTrigger.config.error_handlers`
 
+## Active Support Instrumentation Events
+
+This gem provides the following events for [Active Support Instrumentation](https://guides.rubyonrails.org/active_support_instrumentation.html).
+
+### CronoTrigger::Events::MONITOR
+
+This event is triggered every 20 seconds by the first active worker in worker_id order, so note that other workers don't receive the event.
+
+| Key                      | Value                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| model\_name              | The model name                                                                |
+| executable\_count        | The number of executable records                                              |
+| max\_lock\_duration\_sec | The maximum amount of time since locked records started being processed       |
+| max\_latency\_sec        | The maximum amount of time since executable records got ready to be processed |
+
+
+### CronoTrigger::Events::PROCESS_RECORD
+
+This event is triggered every time a record finishes being processed.
+
+| Key     | Value                |
+| ------- | -------------------- |
+| record  | The processed record |
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.

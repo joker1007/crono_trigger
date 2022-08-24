@@ -4,6 +4,7 @@ RSpec.describe CronoTrigger::Worker do
   before do
     stub_const("CronoTrigger::Worker::HEARTBEAT_INTERVAL", 0.5)
     stub_const("CronoTrigger::Worker::SIGNAL_FETCH_INTERVAL", 0.5)
+    stub_const("CronoTrigger::Worker::MONITOR_INTERVAL", 0.5)
   end
 
   let(:worker) { Class.new { include CronoTrigger::Worker }.new }
@@ -61,6 +62,66 @@ RSpec.describe CronoTrigger::Worker do
       CronoTrigger::Models::Signal.send_tstp(CronoTrigger.config.worker_id)
       sleep 2
       expect(worker.polling_threads[0]).to be_quiet
+    end
+
+    describe "instrumentation" do
+      let(:payloads_from_instrument) { [] }
+
+      around do |example|
+        # Disable polling thread virtually
+        original_polling_interval = CronoTrigger.config.polling_interval
+        CronoTrigger.config.polling_interval = 60
+
+        ActiveSupport::Notifications.subscribe(CronoTrigger::Events::MONITOR) do |*_, payload|
+          payloads_from_instrument << payload
+        end
+
+        example.run
+
+        ActiveSupport::Notifications.unsubscribe(CronoTrigger::Events::MONITOR)
+
+        CronoTrigger.config.polling_interval = original_polling_interval
+      end
+
+      it "triggers CronoTrigger::Events::MONITOR event" do
+        worker_run
+
+        # There is no record
+        sleep 1
+        expect(payloads_from_instrument.last).to eq({
+          model_name: "Notification",
+          executable_count: 0,
+          max_lock_duration_sec: 0,
+          max_latency_sec: 0,
+        })
+
+        # There are only records that are not executable
+        future_time = Time.now + 60
+        Notification.create!(name: 'future_notification', started_at: future_time, next_execute_at: future_time)
+        sleep 1
+        expect(payloads_from_instrument.last).to eq({
+          model_name: "Notification",
+          executable_count: 0,
+          max_lock_duration_sec: 0,
+          max_latency_sec: 0,
+        })
+
+        # There are executable records
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          now = Time.now
+          next_execute_at = now - 100
+          execute_lock = (now - 10).to_i
+          Notification.create!(name: 'notification', started_at: next_execute_at, next_execute_at: next_execute_at)
+          Notification.create!(name: 'locked_notification', started_at: next_execute_at, next_execute_at: next_execute_at, execute_lock: execute_lock)
+          sleep 1
+          expect(payloads_from_instrument.last).to eq({
+            model_name: "Notification",
+            executable_count: 1,
+            max_lock_duration_sec: 10,
+            max_latency_sec: 100,
+          })
+        end
+      end
     end
 
     describe "error handling" do
