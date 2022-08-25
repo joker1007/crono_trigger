@@ -1,6 +1,6 @@
 module CronoTrigger
   module Events
-    MONITOR = -"crono_trigger.monitor"
-    PROCESS_RECORD = -"crono_trigger.process_record"
+    MONITOR = -"monitor.crono_trigger"
+    PROCESS_RECORD = -"process_record.crono_trigger"
   end
 end
