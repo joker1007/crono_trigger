@@ -212,7 +212,7 @@ If `crono_trigger/rollbar` is required, Add Rollbar logging process to `CronoTri
 
 This gem provides the following events for [Active Support Instrumentation](https://guides.rubyonrails.org/active_support_instrumentation.html).
 
-### CronoTrigger::Events::MONITOR
+### monitor.crono\_trigger
 
 This event is triggered every 20 seconds by the first active worker in worker_id order, so note that other workers don't receive the event.
 
@@ -224,7 +224,7 @@ This event is triggered every 20 seconds by the first active worker in worker_id
 | max\_latency\_sec        | The maximum amount of time since executable records got ready to be processed |
 
 
-### CronoTrigger::Events::PROCESS_RECORD
+### process\_record.crono\_trigger
 
 This event is triggered every time a record finishes being processed.
 
