@@ -169,7 +169,7 @@ module CronoTrigger
 
         @model_names.each do |model_name|
           model = model_name.classify.constantize
-          executable_count = model.executables.count
+          executable_count = model.executables.limit(nil).count
 
           execute_lock_column = model.crono_trigger_column_name(:execute_lock)
           oldest_execute_lock = model.executables(including_locked: true).where.not(execute_lock_column => 0).order(execute_lock_column).limit(1).pluck(execute_lock_column).first
