@@ -72,6 +72,9 @@ RSpec.describe CronoTrigger::Worker do
         original_polling_interval = CronoTrigger.config.polling_interval
         CronoTrigger.config.polling_interval = 60
 
+        original_executor_thread = CronoTrigger.config.executor_thread
+        CronoTrigger.config.executor_thread = 3
+
         ActiveSupport::Notifications.subscribe(CronoTrigger::Events::MONITOR) do |*_, payload|
           payloads_from_instrument << payload
         end
@@ -80,6 +83,7 @@ RSpec.describe CronoTrigger::Worker do
 
         ActiveSupport::Notifications.unsubscribe(CronoTrigger::Events::MONITOR)
 
+        CronoTrigger.config.executor_thread = original_executor_thread
         CronoTrigger.config.polling_interval = original_polling_interval
       end
 
@@ -113,10 +117,13 @@ RSpec.describe CronoTrigger::Worker do
           execute_lock = (now - 10).to_i
           Notification.create!(name: 'notification', started_at: next_execute_at, next_execute_at: next_execute_at)
           Notification.create!(name: 'locked_notification', started_at: next_execute_at, next_execute_at: next_execute_at, execute_lock: execute_lock)
+          (CronoTrigger.config.executor_thread * 3).times do |i|
+            Notification.create!(name: "notification#{i}", started_at: now, next_execute_at: now)
+          end
           sleep 1
           expect(payloads_from_instrument.last).to eq({
             model_name: "Notification",
-            executable_count: 1,
+            executable_count: 1 + CronoTrigger.config.executor_thread * 3, # "notification" and "notification#{i}" (CronoTrigger.config.executor_thread * 3)
             max_lock_duration_sec: 10,
             max_latency_sec: 100,
           })
