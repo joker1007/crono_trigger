@@ -73,7 +73,7 @@ class App extends React.Component<any, IAppState> {
           </Toolbar>
         </AppBar>
 
-        <div className="content" style={{"padding": "15px"}}>
+        <div className="content">
           <Switch>
             <Route path="/workers">
               <Workers />

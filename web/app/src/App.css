@@ -1,5 +1,10 @@
 .content {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
+  overflow-x: scroll;
+  padding: 15px;
+}
+.content:before, .content:after {
+  content: "";
 }
