@@ -12,7 +12,7 @@ import Worker from "./Worker";
 declare var window: IGlobalWindow;
 
 class Workers extends React.Component<any, IWorkersState> {
-  private fetchLoop: any;
+  private fetchLoop: ReturnType<typeof setTimeout>;
 
   constructor(props: any) {
     super(props);
