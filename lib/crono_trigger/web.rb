@@ -113,7 +113,7 @@ module CronoTrigger
         model_class = CronoTrigger::Schedulable.included_by.find { |c| c.name == params[:name] }
         if model_class
           after_minute = params[:after] ? Integer(params[:after]) : 10
-          @scheduled_records = model_class.executables(from: Time.now.since(after_minute.minutes), limit: 100, including_locked: true).reorder(next_execute_at: :desc)
+          @scheduled_records = model_class.executables(from: Time.now.since(after_minute.minutes), limit: 100, including_locked: true).reorder(model_class.crono_trigger_column_name(:next_execute_at) => :desc)
           @scheduled_records.where!(locked_by: params[:worker_id]) if params[:worker_id]
           now = Time.now
           records = @scheduled_records.map do |r|
