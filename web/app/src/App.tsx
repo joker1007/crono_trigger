@@ -6,6 +6,7 @@ import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import MenuIcon from '@material-ui/icons/Menu';
 import * as React from 'react';
+import { RouteComponentProps } from "react-router";
 import { Link, Route, Switch } from "react-router-dom";
 import './App.css';
 import Models from './Models';
@@ -18,32 +19,29 @@ interface IAppState {
 }
 
 class App extends React.Component<any, IAppState> {
-  private schedulableRecordsTitleRender: (props: any) => JSX.Element;
-  private schedulableRecordsRender: (props: any) => JSX.Element;
-
   public constructor(props: any) {
     super(props);
-    this.handleMenuButtonClick = this.handleMenuButtonClick.bind(this);
-    this.handleMenuClose = this.handleMenuClose.bind(this);
     this.state = {menuAnchorEl: null};
-    this.schedulableRecordsTitleRender = ({ match }) => (
-      <Typography variant="title" color="inherit">{match.params.name}</Typography>
-    )
-    this.schedulableRecordsRender = ({ match }) => (
-      <SchedulableRecords model_name={match.params.name} />
-    )
   }
 
-  public handleMenuButtonClick(event: any) {
+  public handleMenuButtonClick = (event: React.MouseEvent<HTMLElement>) => {
     this.setState({menuAnchorEl: event.currentTarget});
   }
 
-  public handleMenuClose() {
+  public handleMenuClose = () => {
     this.setState({menuAnchorEl: null});
   }
 
+  public schedulableRecordsTitleRender({ match }: RouteComponentProps<any>): JSX.Element {
+    return <Typography variant="title" color="inherit">{match.params.name}</Typography>;
+  }
+
+  public schedulableRecordsRender({ match }: RouteComponentProps<any>): JSX.Element {
+    return <SchedulableRecords model_name={match.params.name}/>;
+  }
+
   public render() {
-    const { menuAnchorEl }= this.state;
+    const { menuAnchorEl } = this.state;
 
     return (
       <div className="main">
