@@ -21,7 +21,11 @@ class SchedulableRecords extends React.Component<ISchedulableRecordsProps, ISche
   private executionFetchLoop: ReturnType<typeof setTimeout>;
 
   private handleTimeRangeFilterChange = debounce((event: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({timeRangeMinute: parseInt(event.target.value, 10)});
+    const inputValue = parseInt(event.target.value, 10);
+    if (isNaN(inputValue)) {
+       return;
+    }
+    this.setState({timeRangeMinute: inputValue});
     this.fetchSchedulableRecord();
   }, 500)
 
