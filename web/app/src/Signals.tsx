@@ -12,7 +12,7 @@ import Signal from './Signal';
 declare var window: IGlobalWindow;
 
 class Signals extends React.Component<any, ISignalsState> {
-  private fetchLoop: any;
+  private fetchLoop: ReturnType<typeof setTimeout>;
 
   constructor(props: any) {
     super(props)
@@ -38,11 +38,10 @@ class Signals extends React.Component<any, ISignalsState> {
   }
 
   public fetchSignals(): void {
-    const that = this;
     fetch(`${window.mountPath}/signals.json`)
       .then((res) => res.json())
       .then((data) => {
-        that.setState(data);
+        this.setState(data);
       }).catch((err) => {
         console.error(err);
       });

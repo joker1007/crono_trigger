@@ -6,7 +6,8 @@ import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import MenuIcon from '@material-ui/icons/Menu';
 import * as React from 'react';
-import { Link, Route } from "react-router-dom";
+import { RouteComponentProps } from "react-router";
+import { Link, Route, Switch } from "react-router-dom";
 import './App.css';
 import Models from './Models';
 import SchedulableRecords from './SchedulableRecords';
@@ -18,44 +19,29 @@ interface IAppState {
 }
 
 class App extends React.Component<any, IAppState> {
-  private workersTitleRender: () => JSX.Element;
-  private signalsTitleRender: () => JSX.Element;
-  private modelsTitleRender: () => JSX.Element;
-  private schedulableRecordsTitleRender: (props: any) => JSX.Element;
-  private schedulableRecordsRender: (props: any) => JSX.Element;
-
   public constructor(props: any) {
     super(props);
-    this.handleMenuButtonClick = this.handleMenuButtonClick.bind(this);
-    this.handleMenuClose = this.handleMenuClose.bind(this);
     this.state = {menuAnchorEl: null};
-    this.workersTitleRender = () => (
-      <Typography variant="title" color="inherit">Workers</Typography>
-    )
-    this.signalsTitleRender = () => (
-      <Typography variant="title" color="inherit">Signals</Typography>
-    )
-    this.modelsTitleRender = () => (
-      <Typography variant="title" color="inherit">Models</Typography>
-    )
-    this.schedulableRecordsTitleRender = ({ match }) => (
-      <Typography variant="title" color="inherit">{match.params.name}</Typography>
-    )
-    this.schedulableRecordsRender = ({ match }) => (
-      <SchedulableRecords model_name={match.params.name} />
-    )
   }
 
-  public handleMenuButtonClick(event: any) {
+  public handleMenuButtonClick = (event: React.MouseEvent<HTMLElement>) => {
     this.setState({menuAnchorEl: event.currentTarget});
   }
 
-  public handleMenuClose() {
+  public handleMenuClose = () => {
     this.setState({menuAnchorEl: null});
   }
 
+  public schedulableRecordsTitleRender({ match }: RouteComponentProps<any>): JSX.Element {
+    return <Typography variant="title" color="inherit">{match.params.name}</Typography>;
+  }
+
+  public schedulableRecordsRender({ match }: RouteComponentProps<any>): JSX.Element {
+    return <SchedulableRecords model_name={match.params.name}/>;
+  }
+
   public render() {
-    const { menuAnchorEl }= this.state;
+    const { menuAnchorEl } = this.state;
 
     return (
       <div className="main">
@@ -70,18 +56,34 @@ class App extends React.Component<any, IAppState> {
               <MenuItem><Link to="/models" onClick={this.handleMenuClose}>Models</Link></MenuItem>
             </Menu>
 
-            <Route path="/workers" render={this.workersTitleRender} />
-            <Route path="/signals" render={this.signalsTitleRender} />
-            <Route path="/models/:name" render={this.schedulableRecordsTitleRender} />
-            <Route exact={true} path="/models" render={this.modelsTitleRender} />
+            <Switch>
+              <Route path="/workers">
+                <Typography variant="title" color="inherit">Workers</Typography>
+              </Route>
+              <Route path="/signals">
+                <Typography variant="title" color="inherit">Signals</Typography>
+              </Route>
+              <Route path="/models/:name" render={this.schedulableRecordsTitleRender} />
+              <Route exact={true} path="/models">
+                <Typography variant="title" color="inherit">Models</Typography>
+              </Route>
+            </Switch>
           </Toolbar>
         </AppBar>
 
-        <div className="content" style={{"padding": "15px"}}>
-          <Route path="/workers" component={Workers} />
-          <Route path="/signals" component={Signals} />
-          <Route path="/models/:name" render={this.schedulableRecordsRender} />
-          <Route exact={true} path="/models" component={Models} />
+        <div className="content">
+          <Switch>
+            <Route path="/workers">
+              <Workers />
+            </Route>
+            <Route path="/signals">
+              <Signals />
+            </Route>
+            <Route path="/models/:name" render={this.schedulableRecordsRender} />
+            <Route exact={true} path="/models">
+              <Models />
+            </Route>
+          </Switch>
         </div>
       </div>
     );

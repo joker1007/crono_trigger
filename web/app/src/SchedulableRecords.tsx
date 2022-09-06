@@ -17,11 +17,15 @@ import SchedulableRecordTableCell from './SchedulableRecordTableCell';
 declare var window: IGlobalWindow;
 
 class SchedulableRecords extends React.Component<ISchedulableRecordsProps, ISchedulableRecordsStates> {
-  private fetchLoop: any;
-  private executionFetchLoop: any;
+  private fetchLoop: ReturnType<typeof setTimeout>;
+  private executionFetchLoop: ReturnType<typeof setTimeout>;
 
-  private handleTimeRangeFilterChange = debounce((event: any) => {
-    this.setState({timeRangeMinute: parseInt(event.target.value, 10)});
+  private handleTimeRangeFilterChange = debounce((event: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = parseInt(event.target.value, 10);
+    if (isNaN(inputValue)) {
+       return;
+    }
+    this.setState({timeRangeMinute: inputValue});
     this.fetchSchedulableRecord();
   }, 500)
 
@@ -67,18 +71,17 @@ class SchedulableRecords extends React.Component<ISchedulableRecordsProps, ISche
   }
 
   public setFetchExecutionLoop(): void {
-    this.fetchLoop = setTimeout(() => {
+    this.executionFetchLoop = setTimeout(() => {
       this.fetchExecution();
       this.setFetchExecutionLoop();
     }, 3000);
   }
 
   public fetchExecution(): void {
-    const that = this;
     fetch(`${window.mountPath}/models/${this.props.model_name}/executions.json`)
       .then((res) => res.json())
       .then((data) => {
-        that.setState({executions: data.records});
+        this.setState({executions: data.records});
       }).catch((err) => {
         console.error(err);
       });
@@ -156,7 +159,7 @@ class SchedulableRecords extends React.Component<ISchedulableRecordsProps, ISche
     )
   }
 
-  private wrappedHandleTimeRangeFilterChange = (event: any) => {
+  private wrappedHandleTimeRangeFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     event.persist();
     this.handleTimeRangeFilterChange(event);
   }

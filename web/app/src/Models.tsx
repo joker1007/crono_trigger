@@ -26,11 +26,10 @@ class Models extends React.Component<any, IModelsState> {
   }
 
   public fetchModels(): void {
-    const that = this;
     fetch(`${window.mountPath}/models.json`)
       .then((res) => res.json())
       .then((data) => {
-        that.setState(data);
+        this.setState(data);
       }).catch((err) => {
         console.error(err);
       });
