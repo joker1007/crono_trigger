@@ -1,0 +1,7 @@
+module CronoTrigger::Models
+  class Worker < ::ActiveRecord::Base
+    ALIVE_THRESHOLD: Integer
+
+    def self.alive_workers: -> _ActiveRecord_Relation[CronoTrigger::Models::Worker, Integer]
+  end
+end

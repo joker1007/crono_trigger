@@ -1,0 +1,10 @@
+module CronoTrigger
+  class Railtie < Rails::Railtie
+    class Reloader
+      @app: untyped
+
+      def initialize: (?untyped app) -> void
+      def call: () ?{() -> void} -> void
+    end
+  end
+end

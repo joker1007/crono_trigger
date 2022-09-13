@@ -1,0 +1,14 @@
+module CronoTrigger::Models
+  class Signal < ::ActiveRecord::Base
+    IGNORE_THRESHOLD: Integer
+
+    def self.sent_to_me: -> _ActiveRecord_Relation[CronoTrigger::Models::Signal, Integer]
+    def self.send_signal: (String signal, untyped worker_id) -> untyped
+    def self.send_term: (untyped worker_id) -> untyped
+    def self.send_usr1: (untyped worker_id) -> untyped
+    def self.send_cont: (untyped worker_id) -> untyped
+    def self.send_tstp: (untyped worker_id) -> untyped
+    def kill_me: (?to_supervisor: bool) -> Integer?
+    def signal: -> String
+  end
+end

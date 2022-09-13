@@ -198,6 +198,7 @@ module CronoTrigger
     def reset!(update_last_executed_at = true)
       logger.info "Reset execution schedule #{self.class}-#{id}" if logger
 
+      # @type var attributes: Hash[Symbol, untyped]
       attributes = {
         crono_trigger_column_name(:next_execute_at) => calculate_next_execute_at,
         crono_trigger_column_name(:execute_lock) => 0,
@@ -391,7 +392,7 @@ module CronoTrigger
 
     def merge_updated_at_for_crono_trigger!(attributes, time = Time.current)
       if self.class.column_names.include?("updated_at")
-        attributes.merge!("updated_at" => time)
+        attributes.merge!(updated_at: time)
       end
     end
   end

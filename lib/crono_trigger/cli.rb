@@ -2,6 +2,7 @@ require "optparse"
 require "crono_trigger"
 require "serverengine"
 
+# @type var options: {daemonize: bool, pid_path: String, worker_id: String?, config: String?, env: String?, polling_thread: Integer?, polling_interval: Integer?, executor_thread: Integer?, fetch_record: Integer?, log: String?, log_level: String?}
 options = {
   daemonize: false,
   pid_path: "./crono_trigger.pid",

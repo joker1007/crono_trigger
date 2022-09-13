@@ -1,0 +1,39 @@
+module CronoTrigger
+  module Worker
+    HEARTBEAT_INTERVAL: Integer
+    SIGNAL_FETCH_INTERVAL: Integer
+    MONITOR_INTERVAL: Integer
+    EXECUTOR_SHUTDOWN_TIMELIMIT: Integer
+    OTHER_THREAD_SHUTDOWN_TIMELIMIT: Integer
+    @crono_trigger_worker_id: String
+    @stop_flag: untyped
+    @heartbeat_stop_flag: untyped
+    @signal_fetch_stop_flag: untyped
+    @monitor_stop_flag: untyped
+    @model_queue: Thread::Queue
+    @model_names: Array[String | Class]
+    @executor: untyped
+    @execution_counter: untyped
+    @logger: Logger
+    @heartbeat_thread: Thread
+    @signal_fetcn_thread: Thread
+    @monitor_thread: Thread
+
+    attr_reader polling_threads: Array[PollingThread]
+    def initialize: -> void
+    def run: -> untyped
+    def stop: -> untyped
+    def stopped?: -> untyped
+    def quiet?: -> boolish
+
+    private
+    def run_heartbeat_thread: -> untyped
+    def run_signal_fetch_thread: -> untyped
+    def run_monitor_thread: -> untyped
+    def heartbeat: -> untyped
+    def executor_status: -> String?
+    def unregister: -> untyped
+    def handle_signal_from_rdb: -> untyped
+    def monitor: -> nil
+  end
+end

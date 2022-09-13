@@ -28,6 +28,8 @@ module CronoTrigger
         return callable, callable.arity
       elsif callable.is_a?(Symbol)
         return @record.method(callable), 1
+      else
+        raise "#{callable} is not callable"
       end
     end
   end

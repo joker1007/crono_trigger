@@ -1,0 +1,9 @@
+module CronoTrigger
+  class ExecutionTracker
+    @schedulable: Schedulable
+
+    def initialize: (Schedulable schedulable) -> void
+    def self.track: (Schedulable schedulable) ?{ -> (:abort | :ok | :retry) } -> (:abort | :ok | :retry)
+    def track: ?{ -> (:abort | :ok | :retry) } -> (:abort | :ok | :retry)
+  end
+end

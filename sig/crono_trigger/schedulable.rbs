@@ -1,0 +1,108 @@
+module CronoTrigger
+  module Schedulable : ActiveRecord::Base
+    module ClassMethods
+      include ActiveRecord::ModelSchema::ClassMethods
+
+      def transaction: [T] () { () -> T } -> T
+      def arel_table: -> Arel::Table
+
+      def all: () -> ActiveRecord::Relation
+      def where: (*untyped) -> ActiveRecord::Relation
+      def update_all: (*untyped) -> untyped
+
+      def executables: (?from: Time | ActiveSupport::TimeWithZone, ?limit: Integer, ?including_locked: bool) -> ActiveRecord::Relation
+
+
+      def crono_trigger_options: -> Hash[Symbol, untyped]
+
+      def executable_conditions: -> Array[Proc]
+
+      def track_execution: -> bool
+
+      def executables_with_lock: (?limit: Integer) -> [Array[Schedulable], untyped]
+      def crono_trigger_column_name: (:cron | :current_cycle_id | :execute_lock | :finished_at | :last_executed_at | :locked_by | :next_execute_at | :started_at | :timezone name) -> Symbol
+      def execute_lock_timeout: -> Integer
+      def crono_trigger_unlock_all!: -> untyped
+
+      private
+      def add_executable_conditions: (untyped pr) -> untyped
+      def clear_executable_conditions: -> untyped
+    end
+
+    DEFAULT_RETRY_LIMIT: Integer
+    DEFAULT_RETRY_INTERVAL: Integer
+    DEFAULT_EXECUTE_LOCK_TIMEOUT: Integer
+    extend ActiveSupport::Concern
+    include ActiveSupport::Callbacks
+    extend ActiveModel::Callbacks
+    extend ActiveSupport::Callbacks::ClassMethods
+
+    extend ClassMethods
+
+    # Rails methods
+    def self.before_create: (*untyped) -> void
+    def self.before_update: (*untyped) -> void
+    def self.class_attribute: (*untyped) -> void
+    def self.has_many: (Symbol, ?untyped, **untyped) -> void
+    def self.scope: (Symbol, Proc) ?{ () -> untyped } -> void
+    def self.validate: (*untyped) -> void
+    def logger: -> Logger
+
+    self.@included_by: Array[(Class | Module)]
+
+    def self.crono_trigger_options: -> Hash[Symbol, untyped]
+    def self.crono_trigger_options=: (Hash[Symbol, Object] options) -> void
+    def crono_trigger_options: -> Hash[Symbol, untyped]
+
+    def self.executable_conditions: -> Array[Proc]
+    def self.executable_conditions=: (Array[Proc] pr) -> void
+    def executable_conditions: -> Array[Proc]
+
+    def self.track_execution: -> bool
+    def self.track_execution=: (bool pr) -> void
+    def track_execution: -> bool
+
+    def self.included_by: -> Array[untyped]
+    def execute: -> void
+    def do_execute: -> (:abort | :ok | :retry)
+
+    def crono_trigger_executions: -> _ActiveRecord_Relation[CronoTrigger::Models::Execution, Integer]
+    def self.executables: (from: ActiveSupport::TimeWithZone, limit: Integer, ?including_locked: bool) -> _ActiveRecord_Relation[self, untyped]
+
+    private
+    def do_execute_with_catch: -> (:abort | :ok | :retry)
+
+    public
+    def activate_schedule!: (?at: ActiveSupport::TimeWithZone) -> Schedulable
+    def retry!: (?immediately: false) -> untyped
+    def reset!: (?bool update_last_executed_at) -> untyped
+    def abort_execution!: -> void
+    def crono_trigger_lock!: (**Time) -> Hash[:next_execute_at, Time?]
+    def crono_trigger_unlock!: -> void
+    def crono_trigger_status: -> ((:locked | :not_scheduled | :waiting)?)
+    def waiting?: -> bool
+    def not_scheduled?: -> bool
+    def locking?: (?at: Time) -> bool
+    def assume_executing?: -> bool
+
+    def self.crono_trigger_column_name: (:cron | :current_cycle_id | :execute_lock | :finished_at | :last_executed_at | :locked_by | :next_execute_at | :started_at | :timezone name) -> Symbol
+    def crono_trigger_column_name: (:cron | :current_cycle_id | :execute_lock | :finished_at | :last_executed_at | :locked_by | :next_execute_at | :started_at | :timezone name) -> Symbol
+
+    def execute_now: -> (:abort | :ok | :retry)
+
+    private
+    def retry_or_reset!: (Exception ex) -> untyped
+    def calculate_next_execute_at: (?ActiveSupport::TimeWithZone now) -> nil
+    def set_current_cycle_id: -> String?
+    def update_next_execute_at_if_update_cron: -> void
+    def validate_cron_format: -> untyped
+    def retry_limit: -> Integer
+    def retry_interval: -> Integer
+    def retry_count: -> Integer
+    def save_last_error_info: (Exception ex) -> void
+    def merge_updated_at_for_crono_trigger!: (Hash[Symbol, untyped] attributes, ?ActiveSupport::TimeWithZone time) -> void
+
+    class NoRestrictedUnlockError < StandardError
+    end
+  end
+end

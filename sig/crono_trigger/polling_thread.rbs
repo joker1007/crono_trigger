@@ -1,0 +1,22 @@
+module CronoTrigger
+  class PollingThread
+    @model_queue: Thread::Queue
+    @stop_flag: untyped
+    @logger: Logger
+    @executor: untyped
+    @execution_counter: untyped
+    @quiet: untyped
+    @thread: untyped
+
+    def initialize: (Thread::Queue model_queue, untyped stop_flag, Logger logger, untyped executor, untyped execution_counter) -> void
+    def run: -> untyped
+    def join: -> untyped
+    def quiet: -> untyped
+    def quiet?: -> untyped
+    def alive?: -> untyped
+    def poll: (untyped model) -> nil
+
+    private
+    def process_record: (untyped record) -> untyped
+  end
+end

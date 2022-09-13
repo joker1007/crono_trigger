@@ -1,0 +1,6 @@
+module CronoTrigger
+  module Events
+    MONITOR: String
+    PROCESS_RECORD: String
+  end
+end

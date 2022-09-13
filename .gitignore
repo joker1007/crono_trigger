@@ -1,3 +1,6 @@
+.envrc
+.nvim.lua
+
 /.bundle/
 /.yardoc
 /Gemfile.lock

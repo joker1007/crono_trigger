@@ -1,0 +1,10 @@
+module CronoTrigger::Models
+  class Execution < ::ActiveRecord::Base
+    def self.create_with_timestamp!: -> untyped
+
+    def schedule: -> CronoTrigger::Schedulable
+    def complete!: -> Execution
+    def error!: (untyped exception) -> Execution
+    def retry!: -> (false | untyped)
+  end
+end

@@ -1,0 +1,9 @@
+module CronoTrigger
+  class GlobalExceptionHandler
+    def self.handle_global_exception: (untyped ex) -> untyped
+    def handle_global_exception: (untyped ex) -> untyped
+
+    private
+    def ensure_callable: (untyped callable) -> Array[untyped]?
+  end
+end

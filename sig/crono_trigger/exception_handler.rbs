@@ -1,0 +1,12 @@
+module CronoTrigger
+  class ExceptionHandler
+    @record: Schedulable
+
+    def self.handle_exception: (Schedulable record, Exception ex) -> void
+    def initialize: (Schedulable record) -> void
+    def handle_exception: (Exception ex) -> void
+
+    private
+    def ensure_callable: (untyped callable) -> Array[untyped]
+  end
+end

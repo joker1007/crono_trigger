@@ -1,0 +1,12 @@
+module CronoTrigger
+  VERSION: String
+  self.@config: untyped
+  self.@reloader: (CronoTrigger::Railtie::Reloader | Proc)
+
+  def self.config: () -> untyped
+  def self.configure: () {(untyped) -> void} -> void
+  def self.reloader: () -> (CronoTrigger::Railtie::Reloader | Proc)
+  def self.reloader=: ((CronoTrigger::Railtie::Reloader | Proc) reloader) -> void
+  def self.load_config: (String yml, ?String? environment) -> void
+  def self.workers: () -> _ActiveRecord_Relation[CronoTrigger::Models::Worker, Integer]
+end
