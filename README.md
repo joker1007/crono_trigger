@@ -137,7 +137,7 @@ mail.next_execute_at # => next 13:00 with Asia/Japan
 
 #### Run Worker
 
-ues `crono_trigger` command.
+use `crono_trigger` command.
 `crono_trigger` command accepts model class names.
 
 For example,
