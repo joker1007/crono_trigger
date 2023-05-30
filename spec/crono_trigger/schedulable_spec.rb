@@ -60,9 +60,17 @@ RSpec.describe CronoTrigger::Schedulable do
     ).tap(&:activate_schedule!)
   end
   let(:notification9) do
-    started_at = Time.current.beginning_of_day
+    started_at = Time.current.end_of_month.beginning_of_day
     Notification.create!(
       name: "notification9",
+      cron: "#{started_at.min} #{started_at.hour} L * *",
+      started_at: started_at,
+    ).tap(&:activate_schedule!)
+  end
+  let(:notification10) do
+    started_at = Time.current.beginning_of_day
+    Notification.create!(
+      name: "notification10",
       cron: "#{started_at.min} #{started_at.hour} #{started_at.day} * *",
       started_at: started_at,
     ).tap(&:activate_schedule!)
@@ -256,11 +264,17 @@ RSpec.describe CronoTrigger::Schedulable do
         it "executes at started_at" do
           expect(notification8.next_execute_at).to eq(notification8.started_at)
         end
+
+        context "when started_at is the end of month" do
+          it "executes at started_at" do
+            expect(notification9.next_execute_at).to eq(notification9.started_at)
+          end
+        end
       end
 
       context "when started_at is present or past" do
         it "executes at the same datetime as started_at next month" do
-          expect(notification9.next_execute_at).to eq(1.month.since(notification9.started_at))
+          expect(notification10.next_execute_at).to eq(1.month.since(notification10.started_at))
         end
       end
     end
