@@ -310,6 +310,7 @@ module CronoTrigger
       end
     end
 
+    # If the cron definition and started_at match, include the time of started_at as the next execute_at
     def calculate_next_execute_at_by_started_at(started_at, timezone)
       cron_now = timezone ? started_at.in_time_zone(timezone) : started_at
       schedule = Chrono::Schedule.new(self[crono_trigger_column_name(:cron)])

@@ -25,15 +25,29 @@ Or install it yourself as:
 
     $ gem install crono_trigger
 
-## Update from v0.3.x
+## Breaking Changes
 
-### Create crono_trigger system tables
+### Update from v0.6.x
+
+In previous version, now is `2023-06-07T18:00:00+00:00`, a cron definition is `0 1 * * * *`, and `started_at` is `2023-06-08T1:00:00+00:00`.
+In this case, `next_execute_at` was `2023-06-09T1:00:00+00:00`
+
+From v0.7.0, if the cron definition and `started_at` match, include the time of `started_at` as the `next_execute_at`.
+
+For example, now is `2023-06-07T18:00:00+00:00`, a cron definition is `0 1 * * * *`, and `started_at` is `2023-06-08T1:00:00+00:00`.
+In this case, `next_execute_at` is `2023-06-08T1:00:00+00:00`.
+
+If the current time is past `started_at`, the `next_execute_at` is based on the current time.
+
+### Update from v0.3.x
+
+#### Create crono_trigger system tables
 ```
 $ rails g crono_trigger:install # => create migrations
 $ rake db:migrate
 ```
 
-### Add `locked_by:string` column to CronoTrigger::Schedulable model
+#### Add `locked_by:string` column to CronoTrigger::Schedulable model
 ```
 $ rails g migration add_locked_by_column_to_your_model
 $ rake db:migrate
