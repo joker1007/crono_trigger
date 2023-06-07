@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
 
-  spec.add_dependency "chrono"
+  spec.add_dependency "chrono", ">= 0.6.0"
   spec.add_dependency "serverengine"
   spec.add_dependency "concurrent-ruby", ">= 1.1.10"
   spec.add_dependency "tzinfo"
