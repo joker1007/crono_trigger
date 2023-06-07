@@ -295,14 +295,36 @@ module CronoTrigger
     def calculate_next_execute_at(now = Time.current)
       if self[crono_trigger_column_name(:cron)]
         tz = self[crono_trigger_column_name(:timezone)].try { |zn| TZInfo::Timezone.get(zn) }
-        base = [now, self[crono_trigger_column_name(:started_at)]].compact.max
-        cron_now = tz ? base.in_time_zone(tz) : base
-        calculated = Chrono::NextTime.new(now: cron_now, source: self[crono_trigger_column_name(:cron)]).to_time
+        started_at = self[crono_trigger_column_name(:started_at)]
+        if started_at&.>(now)
+          calculated = calculate_next_execute_at_by_started_at(started_at, tz)
+        else
+          cron_now = tz ? now.in_time_zone(tz) : now
+          calculated = Chrono::NextTime.new(now: cron_now, source: self[crono_trigger_column_name(:cron)]).to_time
+        end
 
         return calculated unless self[crono_trigger_column_name(:finished_at)]
         return if calculated > self[crono_trigger_column_name(:finished_at)]
 
         calculated
+      end
+    end
+
+    def calculate_next_execute_at_by_started_at(started_at, timezone)
+      cron_now = timezone ? started_at.in_time_zone(timezone) : started_at
+      schedule = Chrono::Schedule.new(self[crono_trigger_column_name(:cron)])
+
+      if schedule.minutes.include?(cron_now.min) &&
+        schedule.hours.include?(cron_now.hour) &&
+        (schedule.days.include?(cron_now.day) || schedule.days.empty?) &&
+        schedule.months.include?(cron_now.month) &&
+        schedule.wdays.include?(cron_now.wday) &&
+        cron_now.sec == 0
+
+        # Execute job at started_at
+        cron_now
+      else
+        Chrono::NextTime.new(now: cron_now, source: self[crono_trigger_column_name(:cron)]).to_time
       end
     end
 

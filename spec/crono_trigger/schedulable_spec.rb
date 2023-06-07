@@ -51,6 +51,30 @@ RSpec.describe CronoTrigger::Schedulable do
       started_at: Time.current.since(2.day),
     ).tap(&:activate_schedule!)
   end
+  let(:notification8) do
+    started_at = 1.day.since.beginning_of_day
+    Notification.create!(
+      name: "notification8",
+      cron: "#{started_at.min} #{started_at.hour} #{started_at.day} * *",
+      started_at: started_at,
+    ).tap(&:activate_schedule!)
+  end
+  let(:notification9) do
+    started_at = Time.current.end_of_month.beginning_of_day
+    Notification.create!(
+      name: "notification9",
+      cron: "#{started_at.min} #{started_at.hour} L * *",
+      started_at: started_at,
+    ).tap(&:activate_schedule!)
+  end
+  let(:notification10) do
+    started_at = Time.current.beginning_of_day
+    Notification.create!(
+      name: "notification10",
+      cron: "#{started_at.min} #{started_at.hour} #{started_at.day} * *",
+      started_at: started_at,
+    ).tap(&:activate_schedule!)
+  end
   let(:new_notification) do
     Notification.new(
       started_at: Time.current,
@@ -231,6 +255,26 @@ RSpec.describe CronoTrigger::Schedulable do
           expect(next_execute_at).to eq(Time.utc(2017, 6, 18, 18, 10))
           notification5.finished_at = next_execute_at - 1
           expect(notification5.send(:calculate_next_execute_at)).to be nil
+        end
+      end
+    end
+
+    context "when started_at and first execution time are the same" do
+      context "when started_at is future" do
+        it "executes at started_at" do
+          expect(notification8.next_execute_at).to eq(notification8.started_at)
+        end
+
+        context "when started_at is the end of month" do
+          it "executes at started_at" do
+            expect(notification9.next_execute_at).to eq(notification9.started_at)
+          end
+        end
+      end
+
+      context "when started_at is present or past" do
+        it "executes at the same datetime as started_at next month" do
+          expect(notification10.next_execute_at).to eq(1.month.since(notification10.started_at))
         end
       end
     end
