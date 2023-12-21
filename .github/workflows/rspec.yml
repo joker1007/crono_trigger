@@ -12,6 +12,9 @@ jobs:
     strategy:
       matrix:
         ruby-version: ['2.7', '3.0', '3.1']
+        gemfile: ["Gemfile", "gemfiles/activerecord-61.gemfile", "gemfiles/activerecord-70.gemfile", "gemfiles/activerecord-71.gemfile"]
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
 
     steps:
     - uses: actions/checkout@v2
