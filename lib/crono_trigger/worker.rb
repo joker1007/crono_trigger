@@ -38,13 +38,14 @@ module CronoTrigger
       @heartbeat_thread = run_heartbeat_thread
       @signal_fetcn_thread = run_signal_fetch_thread
       @monitor_thread = run_monitor_thread
-      @worker_count_updater_thread = run_worker_count_updater_thread
 
       polling_thread_count = CronoTrigger.config.polling_thread || [@model_names.size, Concurrent.processor_count].min
       # Assign local variable for Signal handling
       polling_threads = polling_thread_count.times.map { PollingThread.new(@model_queue, @stop_flag, @logger, @executor, @execution_counter) }
       @polling_threads = polling_threads
       @polling_threads.each(&:run)
+
+      @worker_count_updater_thread = run_worker_count_updater_thread
 
       ServerEngine::SignalThread.new do |st|
         st.trap(:TSTP) do
