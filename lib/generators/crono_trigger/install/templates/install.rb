@@ -5,7 +5,7 @@ class CreateCronoTriggerSystemTables < ActiveRecord::Migration<%= Rails::VERSION
       t.integer  :current_executing_size, null: false
       t.integer  :current_queue_size, null: false
       t.string   :executor_status, null: false
-      t.string   :polling_model_names, null: false
+      t.text   :polling_model_names, null: false
       t.datetime :last_heartbeated_at, null: false
     end
 
