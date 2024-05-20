@@ -4,6 +4,7 @@ require "ostruct"
 require "socket"
 require "active_record"
 require "concurrent"
+require "retriable"
 require "crono_trigger/events"
 require "crono_trigger/models/worker"
 require "crono_trigger/models/signal"
@@ -22,6 +23,11 @@ module CronoTrigger
     model_names: nil,
     error_handlers: [],
     global_error_handlers: [],
+    db_error_retriable_options: {
+      on: {
+        ActiveRecord::ConnectionNotEstablished => nil,
+      },
+    }
   )
 
   def self.config
@@ -51,6 +57,12 @@ module CronoTrigger
 
   def self.workers
     CronoTrigger::Models::Worker.alive_workers
+  end
+
+  def self.retry_on_db_errors
+    Retriable.retriable(CronoTrigger.config.db_error_retriable_options) do
+      yield
+    end
   end
 end
 

@@ -118,8 +118,8 @@ module CronoTrigger
     end
 
     def heartbeat
-      CronoTrigger::Models::Worker.connection_pool.with_connection do
-        begin
+      CronoTrigger.retry_on_db_errors do
+        CronoTrigger::Models::Worker.connection_pool.with_connection do
           worker_record = CronoTrigger::Models::Worker.find_or_initialize_by(worker_id: @crono_trigger_worker_id)
           worker_record.max_thread_size = @executor.max_length
           worker_record.current_executing_size = @execution_counter.value
@@ -129,11 +129,11 @@ module CronoTrigger
           worker_record.last_heartbeated_at = Time.current
           @logger.info("[worker_id:#{@crono_trigger_worker_id}] Send heartbeat to database")
           worker_record.save!
-        rescue => ex
-          CronoTrigger::GlobalExceptionHandler.handle_global_exception(ex)
-          stop
         end
       end
+    rescue => ex
+      CronoTrigger::GlobalExceptionHandler.handle_global_exception(ex)
+      stop
     end
 
     def executor_status
@@ -153,18 +153,22 @@ module CronoTrigger
 
     def unregister
       @logger.info("[worker_id:#{@crono_trigger_worker_id}] Unregister worker from database")
-      CronoTrigger::Models::Worker.connection_pool.with_connection do
-        CronoTrigger::Models::Worker.find_by(worker_id: @crono_trigger_worker_id)&.destroy
+      CronoTrigger.retry_on_db_errors do
+        CronoTrigger::Models::Worker.connection_pool.with_connection do
+          CronoTrigger::Models::Worker.find_by(worker_id: @crono_trigger_worker_id)&.destroy
+        end
       end
     rescue => ex
       CronoTrigger::GlobalExceptionHandler.handle_global_exception(ex)
     end
 
     def handle_signal_from_rdb
-      CronoTrigger::Models::Signal.connection_pool.with_connection do
-        CronoTrigger::Models::Signal.sent_to_me.take(1)[0]&.tap do |s|
-          @logger.info("[worker_id:#{@crono_trigger_worker_id}] Receive Signal #{s.signal} from database")
-          s.kill_me(to_supervisor: s.signal != "TSTP")
+      CronoTrigger.retry_on_db_errors do
+        CronoTrigger::Models::Signal.connection_pool.with_connection do
+          CronoTrigger::Models::Signal.sent_to_me.take(1)[0]&.tap do |s|
+            @logger.info("[worker_id:#{@crono_trigger_worker_id}] Receive Signal #{s.signal} from database")
+            s.kill_me(to_supervisor: s.signal != "TSTP")
+          end
         end
       end
     rescue => ex
@@ -174,29 +178,31 @@ module CronoTrigger
     def monitor
       return unless ActiveSupport::Notifications.notifier.listening?(CronoTrigger::Events::MONITOR)
 
-      CronoTrigger::Models::Worker.connection_pool.with_connection do
-        if workers_processing_same_models.order(:worker_id).limit(1).pluck(:worker_id).first != @crono_trigger_worker_id
-          # Return immediately to avoid redundant instruments
-          return
-        end
+      CronoTrigger.retry_on_db_errors do
+        CronoTrigger::Models::Worker.connection_pool.with_connection do
+          if workers_processing_same_models.order(:worker_id).limit(1).pluck(:worker_id).first != @crono_trigger_worker_id
+            # Return immediately to avoid redundant instruments
+            return
+          end
 
-        @model_names.each do |model_name|
-          model = model_name.classify.constantize
-          executable_count = model.executables.limit(nil).count
+          @model_names.each do |model_name|
+            model = model_name.classify.constantize
+            executable_count = model.executables.limit(nil).count
 
-          execute_lock_column = model.crono_trigger_column_name(:execute_lock)
-          oldest_execute_lock = model.executables(including_locked: true).where.not(execute_lock_column => 0).order(execute_lock_column).limit(1).pluck(execute_lock_column).first
+            execute_lock_column = model.crono_trigger_column_name(:execute_lock)
+            oldest_execute_lock = model.executables(including_locked: true).where.not(execute_lock_column => 0).order(execute_lock_column).limit(1).pluck(execute_lock_column).first
 
-          next_execute_at_column = model.crono_trigger_column_name(:next_execute_at)
-          oldest_next_execute_at = model.executables.order(next_execute_at_column).limit(1).pluck(next_execute_at_column).first
+            next_execute_at_column = model.crono_trigger_column_name(:next_execute_at)
+            oldest_next_execute_at = model.executables.order(next_execute_at_column).limit(1).pluck(next_execute_at_column).first
 
-          now = Time.now
-          ActiveSupport::Notifications.instrument(CronoTrigger::Events::MONITOR, {
-            model_name: model_name,
-            executable_count: executable_count,
-            max_lock_duration_sec: oldest_execute_lock.nil? ? 0 : now.to_i - oldest_execute_lock,
-            max_latency_sec: oldest_next_execute_at.nil? ? 0 : now - oldest_next_execute_at,
-          })
+            now = Time.now
+            ActiveSupport::Notifications.instrument(CronoTrigger::Events::MONITOR, {
+              model_name: model_name,
+              executable_count: executable_count,
+              max_lock_duration_sec: oldest_execute_lock.nil? ? 0 : now.to_i - oldest_execute_lock,
+              max_latency_sec: oldest_next_execute_at.nil? ? 0 : now - oldest_next_execute_at,
+            })
+          end
         end
       end
     rescue => ex
@@ -204,10 +210,12 @@ module CronoTrigger
     end
 
     def update_worker_count
-      CronoTrigger::Models::Worker.connection_pool.with_connection do
-        worker_count = workers_processing_same_models.count
-        return if worker_count.zero?
-        @polling_threads.each { |th| th.worker_count = worker_count }
+      CronoTrigger.retry_on_db_errors do
+        CronoTrigger::Models::Worker.connection_pool.with_connection do
+          worker_count = workers_processing_same_models.count
+          return if worker_count.zero?
+          @polling_threads.each { |th| th.worker_count = worker_count }
+        end
       end
     rescue => ex
       CronoTrigger::GlobalExceptionHandler.handle_global_exception(ex)
