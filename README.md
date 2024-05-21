@@ -178,6 +178,57 @@ Usage: crono_trigger [options] MODEL [MODEL..]
     -h, --help                       Prints this help
 ```
 
+#### Handle errors
+
+This gem provides the following options to handle errors:
+
+```ruby
+CronoTrigger.configure do |config|
+  # These handlers are called when the execute method fails even after retries.
+  config.error_handlers << proc do |exception, record|
+    ActiveRecord::Base.logger.error("Failed to process #{record.class}##{record.id}: #{exception} (#{exception.class})")
+  end
+
+  # These handlers are called when an exception occurs outside of the execute method.
+  config.global_error_handlers << proc do |exception|
+    ActiveRecord::Base.logger.error("#{exception} (#{exception.class})\n#{exception.backtrace.join("\n")}")
+  end
+
+  # db_error_retriable_options are passed to `Retriable.retriable` used in the idempotent code that accesses the database
+  # except for the code processing each record.
+  # Here is the default value.
+  config.db_error_retriable_options = {
+    on: {
+      ActiveRecord::ConnectionNotEstablished => nil,
+    },
+  }
+end
+```
+
+For example, if you would like to reconnect to the database before retry for some reason, you can do so using `on_retry` option as follows:
+
+```ruby
+CronoTrigger.configure do |config|
+  config.db_error_retriable_options = {
+    on: {
+      ActiveRecord::ConnectionNotEstablished => nil,
+      Mysql2::Error::ConnectionError => nil,
+      ActiveRecord::StatementInvalid => /MySQL server is running with the --read-only option/,
+    },
+    on_retry: proc do |exception, try, elapsed_time, interval|
+      ActiveRecord::Base.logger.info("#{try}th: Retry on #{exception.class}: #{exception}")
+      next unless exception.is_a?(ActiveRecord::StatementInvalid)
+
+      ActiveRecord::Base.logger.info("#{try}th: Reconnect to MySQL on #{exception.class}: #{exception}")
+      # NOTE: The connection acquired here might be different from the one used in the code that raised the error,
+      #   but we don't have a way to get the latter connection.
+      ActiveRecord::Base.connection_pool.with_connection(&:reconnect!)
+    end,
+  }
+end
+```
+
+
 ## Specification
 
 ### Columns

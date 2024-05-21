@@ -81,6 +81,12 @@ module CronoTrigger
 
           return [records, maybe_has_next] if records.size == limit
         end
+
+        [records, maybe_has_next]
+      rescue => e
+        raise if records.empty?
+
+        logger&.warn("Failed to fetching some records but continue processing records: #{e} (#{e.class})")
         [records, maybe_has_next]
       end
 
