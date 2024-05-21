@@ -39,5 +39,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "bundler", "~> 2.0"
   spec.add_development_dependency "rake"
   spec.add_development_dependency "rspec"
-  spec.add_development_dependency "codecov"
+  spec.add_development_dependency "simplecov"
+  spec.add_development_dependency "simplecov-cobertura"
 end
