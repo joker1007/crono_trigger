@@ -1,10 +1,11 @@
-if ENV["CI"]
-  require 'simplecov'
-  SimpleCov.start
+require 'simplecov'
 
-  require 'codecov'
-  SimpleCov.formatter = SimpleCov::Formatter::Codecov
+if ENV["CI"]
+  require 'simplecov-cobertura'
+  SimpleCov.formatter = SimpleCov::Formatter::CoberturaFormatter
 end
+
+SimpleCov.start
 
 require "rollbar"
 require "crono_trigger"
