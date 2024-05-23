@@ -1,6 +1,8 @@
 name: RSpec
 
 on:
+  schedule:
+    - cron: "0 9 * * 1"
   push:
     branches: [ master ]
   pull_request:
