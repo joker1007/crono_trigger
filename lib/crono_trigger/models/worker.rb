@@ -7,7 +7,11 @@ module CronoTrigger
 
       ALIVE_THRESHOLD = CronoTrigger::Worker::HEARTBEAT_INTERVAL * 5
 
-      enum executor_status: {running: "running", quiet: "quiet", shuttingdown: "shuttingdown", shutdown: "shutdown"}
+      if ActiveRecord.version >= Gem::Version.new("7.0")
+        enum :executor_status, {running: "running", quiet: "quiet", shuttingdown: "shuttingdown", shutdown: "shutdown"}
+      else
+        enum executor_status: {running: "running", quiet: "quiet", shuttingdown: "shuttingdown", shutdown: "shutdown"}
+      end
 
       if ActiveRecord.version >= Gem::Version.new("7.1.0")
         serialize :polling_model_names, coder: JSON
