@@ -5,7 +5,11 @@ module CronoTrigger
 
       IGNORE_THRESHOLD = 300
 
-      enum signal: {TERM: "TERM", USR1: "USR1", CONT: "CONT", TSTP: "TSTP"}
+      if ActiveRecord.version >= Gem::Version.new("7.0")
+        enum :signal, {TERM: "TERM", USR1: "USR1", CONT: "CONT", TSTP: "TSTP"}
+      else
+        enum signal: {TERM: "TERM", USR1: "USR1", CONT: "CONT", TSTP: "TSTP"}
+      end
 
       scope :sent_to_me, proc {
         raise "Must set worker_id" unless CronoTrigger.config.worker_id
