@@ -4,7 +4,6 @@ on:
   schedule:
     - cron: "0 9 * * 1"
   push:
-    branches: [ master ]
   pull_request:
 
 jobs:
@@ -13,8 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        ruby-version: ['3.1', '3.2', '3.3']
-        gemfile: ["Gemfile", "gemfiles/activerecord-61.gemfile", "gemfiles/activerecord-70.gemfile", "gemfiles/activerecord-71.gemfile"]
+        ruby-version: ['3.2', '3.3', '3.4']
+        gemfile:
+          - Gemfile
+          - gemfiles/activerecord-70.gemfile
+          - gemfiles/activerecord-71.gemfile
+          - gemfiles/activerecord-80.gemfile
         exclude:
           - ruby-version: '3.2'
             gemfile: "gemfiles/activerecord-61.gemfile"
