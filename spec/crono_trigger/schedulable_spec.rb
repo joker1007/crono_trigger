@@ -200,6 +200,14 @@ RSpec.describe CronoTrigger::Schedulable do
         end
       end
     end
+
+    context "when fetching executable record ids fails" do
+      it "re-raises the original error" do
+        allow(Notification).to receive(:executables).and_raise(ActiveRecord::ConnectionNotEstablished)
+
+        expect { Notification.executables_with_lock(limit: 1) }.to raise_error(ActiveRecord::ConnectionNotEstablished)
+      end
+    end
   end
 
   describe ".crono_trigger_unlock_all!" do

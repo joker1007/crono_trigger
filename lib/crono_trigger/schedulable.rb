@@ -64,12 +64,12 @@ module CronoTrigger
 
     module ClassMethods
       def executables_with_lock(limit: CronoTrigger.config.executor_thread * 3, worker_count: 1)
+        records = []
         # Fetch more than `limit` records because other workers might have acquired the lock
         # and this method might not be able to return enough records for the executor to
         # make the best use of the CPU.
         ids = executables(limit: limit * worker_count).pluck(:id)
         maybe_has_next = !ids.empty?
-        records = []
         ids.each do |id|
           transaction do
             r = all.lock.find(id)
