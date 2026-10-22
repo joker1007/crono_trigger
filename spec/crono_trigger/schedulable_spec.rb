@@ -150,6 +150,19 @@ RSpec.describe CronoTrigger::Schedulable do
           expect(Notification.executables).to match_array([notification2])
         end
       end
+
+      it "does not share executable_conditions between a class and its subclasses" do
+        Notification.send(:add_executable_conditions, -> { where(cron: "10 * * * *") })
+        subclass = Class.new(Notification)
+
+        subclass.send(:add_executable_conditions, -> { where(cron: "*/10 * * * *") })
+        expect(Notification.executable_conditions.size).to eq(1)
+        expect(subclass.executable_conditions.size).to eq(2)
+
+        subclass.send(:clear_executable_conditions)
+        expect(Notification.executable_conditions.size).to eq(1)
+        expect(subclass.executable_conditions).to be_empty
+      end
     end
   end
 
@@ -784,6 +797,30 @@ RSpec.describe CronoTrigger::Schedulable do
           expect(Notification.results).to eq({new_notification.id => "executed"})
           expect(CronoTrigger::Models::Execution.count).to eq(1)
           expect(CronoTrigger::Models::Execution.last.status).to eq("completed")
+        end
+      end
+    end
+  end
+
+  describe "#retry!" do
+    context "with exponential_backoff option" do
+      around do |example|
+        original = Notification.crono_trigger_options
+        Notification.crono_trigger_options = original.merge(exponential_backoff: true, retry_interval: 4)
+        example.run
+      ensure
+        Notification.crono_trigger_options = original
+      end
+
+      it "doubles the interval on each retry" do
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          waits = 4.times.map do
+            notification1.retry!
+            notification1.reload.next_execute_at - Time.current
+          end
+
+          expect(waits).to eq([4, 8, 16, 32])
+          expect(notification1.retry_count).to eq(4)
         end
       end
     end

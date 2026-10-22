@@ -18,7 +18,9 @@ module CronoTrigger
       @signal_fetch_stop_flag = ServerEngine::BlockingFlag.new
       @monitor_stop_flag = ServerEngine::BlockingFlag.new
       @model_queue = Queue.new
-      @model_names = CronoTrigger.config.model_names || CronoTrigger::Schedulable.included_by
+      # Model names are used as String in PollingThread (`classify`) and serialized to the workers table,
+      # but `included_by` holds Class objects.
+      @model_names = (CronoTrigger.config.model_names.presence || CronoTrigger::Schedulable.included_by).map(&:to_s)
       @model_names.each do |model_name|
         @model_queue << model_name
       end

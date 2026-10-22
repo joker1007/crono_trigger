@@ -49,6 +49,10 @@ gem 'crono_trigger', '< 1.0.0'
 - The default value of `fetch_records` is changed from `executor_thread * 3` to `1`.
   See [Tuning `fetch_records`](#tuning-fetch_records).
 - The `worker_count` argument of `executables_with_lock` and `CronoTrigger::PollingThread#worker_count=` are removed.
+- `exponential_backoff` actually doubles the retry interval on each retry (`retry_interval * 2 ** retry_count`).
+  Previously, it increased the interval linearly after the third retry.
+- `crono_trigger` command without MODEL arguments polls all models including `CronoTrigger::Schedulable` as described in its help.
+  Previously, it polled no models.
 
 Because a locking read locks the index records which it scans, make sure that the index starting with `next_execute_at` (See [Migration sample](#migration-sample)) exists.
 Without the index, a polling query might lock much more records than it fetches.

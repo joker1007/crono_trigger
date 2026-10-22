@@ -109,12 +109,13 @@ module CronoTrigger
 
       private
 
+      # Reassign instead of mutating because class_attribute shares the same object with subclasses
       def add_executable_conditions(pr)
-        self.executable_conditions << pr
+        self.executable_conditions = executable_conditions + [pr]
       end
 
       def clear_executable_conditions
-        self.executable_conditions.clear
+        self.executable_conditions = []
       end
     end
 
@@ -178,10 +179,12 @@ module CronoTrigger
         logger.info "Retry #{self.class}-#{id}" if logger
 
         now = Time.current
+        has_retry_count = self.class.column_names.include?("retry_count")
+        current_retry_count = has_retry_count ? retry_count.to_i : 0
         if immediately
           wait = 0
         else
-          wait = crono_trigger_options[:exponential_backoff] ? retry_interval * [2 * (retry_count - 1), 1].max : retry_interval
+          wait = crono_trigger_options[:exponential_backoff] ? retry_interval * (2 ** current_retry_count) : retry_interval
         end
         attributes = {
           crono_trigger_column_name(:next_execute_at) => now + wait,
@@ -189,8 +192,8 @@ module CronoTrigger
           crono_trigger_column_name(:locked_by) => nil,
         }
 
-        if self.class.column_names.include?("retry_count")
-          attributes.merge!(retry_count: retry_count.to_i + 1)
+        if has_retry_count
+          attributes.merge!(retry_count: current_retry_count + 1)
         end
 
         merge_updated_at_for_crono_trigger!(attributes, now)
