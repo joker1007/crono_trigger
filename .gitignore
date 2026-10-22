@@ -21,3 +21,6 @@ spec/dummy/tmp/
 spec/testdb.sqlite3*
 
 .gem_rbs_collection
+
+.envrc
+.nvim.lua

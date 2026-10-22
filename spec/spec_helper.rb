@@ -20,6 +20,20 @@ case ENV["DB"]
 when "mysql"
   ActiveRecord::Base.establish_connection(
     adapter: "mysql2",
+    host: ENV["DB_HOST"],
+    port: ENV["DB_PORT"],
+    username: ENV["DB_USERNAME"],
+    password: ENV["DB_PASSWORD"],
+    database: "test",
+    pool: CronoTrigger.config.executor_thread + 5,
+  )
+when "postgresql"
+  ActiveRecord::Base.establish_connection(
+    adapter: "postgresql",
+    host: ENV["DB_HOST"],
+    port: ENV["DB_PORT"],
+    username: ENV["DB_USERNAME"],
+    password: ENV["DB_PASSWORD"],
     database: "test",
     pool: CronoTrigger.config.executor_thread + 5,
   )

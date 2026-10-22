@@ -10,7 +10,6 @@ module CronoTrigger
       end
       @execution_counter = execution_counter
       @quiet = Concurrent::AtomicBoolean.new(false)
-      @worker_count = 1
     end
 
     def run
@@ -60,7 +59,7 @@ module CronoTrigger
       while maybe_has_next && !@stop_flag.set?
         records, maybe_has_next = CronoTrigger.retry_on_db_errors do
           model.connection_pool.with_connection do
-            model.executables_with_lock(limit: CronoTrigger.config.fetch_records || CronoTrigger.config.executor_thread * 3, worker_count: @worker_count)
+            model.executables_with_lock(limit: CronoTrigger.config.fetch_records)
           end
         end
 
@@ -75,11 +74,6 @@ module CronoTrigger
           end
         end
       end
-    end
-
-    def worker_count=(n)
-      raise ArgumentError, "worker_count must be greater than 0" if n <= 0
-      @worker_count = n
     end
 
     private

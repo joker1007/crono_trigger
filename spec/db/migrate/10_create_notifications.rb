@@ -1,4 +1,4 @@
-class CreateNotifications < ActiveRecord::VERSION::MAJOR >= 5 ? ActiveRecord::Migration[5.0] : ActiveRecord::Migration
+class CreateNotifications < ActiveRecord::Migration[5.0]
   def self.up
     create_table :notifications do |t|
       t.string :name

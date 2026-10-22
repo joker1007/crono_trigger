@@ -129,41 +129,14 @@ RSpec.describe CronoTrigger::PollingThread do
       end
     end
 
-    context "when an error occurs after one or more records have been locked" do
-      it "execute model#execute method" do
+    context "when an error occurs in executables_with_lock" do
+      it "raises the error without locking any records" do
         Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
           notification2
           notification3
         end
 
-        called_times = 0
-        allow_any_instance_of(Notification).to receive(:crono_trigger_lock!).and_wrap_original do |m, *args|
-          called_times += 1
-          if called_times == 2
-            raise "Unknown error"
-          else
-            m.call(*args)
-          end
-        end
-
-        Timecop.freeze(Time.utc(2017, 6, 18, 1, 10)) do
-          expect {
-            polling_thread.poll(Notification)
-          }.to change { Notification.results }.from({}).to({notification2.id => "executed", notification3.id => "executed"})
-          expect(processed_records_from_instrument).to contain_exactly(notification2, notification3)
-        end
-
-        expect(called_times).to eq(3)
-      end
-    end
-
-    context "when an error occurs in executables_with_lock" do
-      it "raises the error" do
-        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
-          notification2
-        end
-
-        allow_any_instance_of(Notification).to receive(:crono_trigger_lock!) do
+        allow_any_instance_of(ActiveRecord::Relation).to receive(:update_all) do
           raise "Unknown error"
         end
 
@@ -172,6 +145,10 @@ RSpec.describe CronoTrigger::PollingThread do
             polling_thread.poll(Notification)
           }.to raise_error("Unknown error")
         end
+
+        expect(notification2.reload.execute_lock).to eq(0)
+        expect(notification3.reload.execute_lock).to eq(0)
+        expect(Notification.results).to be_empty
       end
     end
 

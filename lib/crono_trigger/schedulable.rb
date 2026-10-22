@@ -63,31 +63,28 @@ module CronoTrigger
     end
 
     module ClassMethods
-      def executables_with_lock(limit: CronoTrigger.config.executor_thread * 3, worker_count: 1)
-        records = []
-        # Fetch more than `limit` records because other workers might have acquired the lock
-        # and this method might not be able to return enough records for the executor to
-        # make the best use of the CPU.
-        ids = executables(limit: limit * worker_count).pluck(:id)
-        maybe_has_next = !ids.empty?
-        ids.each do |id|
-          transaction do
-            r = all.lock.find(id)
-            unless r.locking?
-              r.crono_trigger_lock!
-              records << r
-            end
-          end
+      # Requires a database that supports `FOR UPDATE SKIP LOCKED` (MySQL 8.0+, PostgreSQL 9.5+).
+      # Rows locked by other workers' transactions are skipped instead of waited for.
+      def executables_with_lock(limit: CronoTrigger.config.fetch_records)
+        now = Time.current
+        attributes = {
+          crono_trigger_column_name(:execute_lock) => now.to_i,
+          crono_trigger_column_name(:locked_by) => CronoTrigger.config.worker_id,
+        }
+        attributes["updated_at"] = now if column_names.include?("updated_at")
 
-          return [records, maybe_has_next] if records.size == limit
+        records = transaction do
+          rs = executables(from: now, limit: limit).lock("FOR UPDATE SKIP LOCKED").to_a
+          unscoped.where(primary_key => rs.map(&:id)).update_all(attributes) unless rs.empty?
+          rs
         end
 
-        [records, maybe_has_next]
-      rescue => e
-        raise if records.empty?
+        records.each do |r|
+          r.assign_attributes(attributes)
+          r.clear_changes_information
+        end
 
-        logger&.warn("Failed to fetching some records but continue processing records: #{e} (#{e.class})")
-        [records, maybe_has_next]
+        [records, records.size >= limit]
       end
 
       def crono_trigger_column_name(name)

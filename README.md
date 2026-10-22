@@ -25,7 +25,33 @@ Or install it yourself as:
 
     $ gem install crono_trigger
 
+## Requirements
+
+CronoTrigger fetches executable records with `SELECT ... FOR UPDATE SKIP LOCKED`.
+So the database must support `SKIP LOCKED` (MySQL 8.0+ or PostgreSQL 9.5+).
+
+CronoTrigger also requires ActiveRecord 7.1+.
+
+If your database does not support `SKIP LOCKED` or you use ActiveRecord < 7.1, use crono_trigger < 1.0.0.
+
+```ruby
+gem 'crono_trigger', '< 1.0.0'
+```
+
 ## Breaking Changes
+
+### Update from v0.8.x
+
+- The database must support `SKIP LOCKED` (MySQL 8.0+ or PostgreSQL 9.5+).
+  Records locked by other workers are skipped instead of waited for.
+  If your database does not support `SKIP LOCKED`, keep using crono_trigger < 1.0.0.
+- ActiveRecord < 7.1 is no longer supported. If you use it, keep using crono_trigger < 1.0.0.
+- The default value of `fetch_records` is changed from `executor_thread * 3` to `1`.
+  See [Tuning `fetch_records`](#tuning-fetch_records).
+- The `worker_count` argument of `executables_with_lock` and `CronoTrigger::PollingThread#worker_count=` are removed.
+
+Because a locking read locks the index records which it scans, make sure that the index starting with `next_execute_at` (See [Migration sample](#migration-sample)) exists.
+Without the index, a polling query might lock much more records than it fetches.
 
 ### Update from v0.6.x
 
@@ -170,12 +196,24 @@ Usage: crono_trigger [options] MODEL [MODEL..]
     -p, --polling-thread=SIZE        Polling thread size (Default: 1)
     -i, --polling-interval=SECOND    Polling interval seconds (Default: 5)
     -c, --concurrency=SIZE           Execute thread size (Default: 25)
-    -r, --fetch-records=SIZE         Record count fetched by polling thread (Default: concurrency * 3)
+    -r, --fetch-records=SIZE         Record count fetched by polling thread at once (Default: 1)
     -l, --log=LOGFILE                Set log output destination (Default: STDOUT or ./crono_trigger.log if daemonize is true)
         --log-level=LEVEL            Set log level (Default: info)
     -d, --daemonize                  Daemon mode
         --pid=PIDFILE                Set pid file
     -h, --help                       Prints this help
+```
+
+#### Tuning `fetch_records`
+
+A polling thread fetches and locks `fetch_records` records in a transaction, and repeats it while it can fetch `fetch_records` records.
+By default, it fetches records one by one. It is enough in most cases, and it keeps locking duration short and distributes records evenly to workers.
+
+If there are many jobs and each job finishes quickly, fetching one by one requires a few round trips to database per record and it can be a bottleneck.
+In such case, increase `fetch_records` (for example, the same value as `--concurrency`).
+
+```
+$ crono_trigger --concurrency=25 --fetch-records=25 MailNotification
 ```
 
 #### Handle errors

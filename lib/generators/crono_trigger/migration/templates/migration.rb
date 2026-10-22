@@ -1,4 +1,4 @@
-class <%= migration_class_name %> < ActiveRecord::Migration<%= Rails::VERSION::MAJOR >= 5 ? "[#{ActiveRecord::Migration.current_version}]" : "" %>
+class <%= migration_class_name %> < ActiveRecord::Migration[<%= ActiveRecord::Migration.current_version %>]
   def change
     # columns for CronoTrigger::Schedulable
     add_column :<%= table_name %>, :cron, :string
