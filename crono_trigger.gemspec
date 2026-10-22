@@ -36,7 +36,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "mysql2"
   spec.add_development_dependency "timecop"
   spec.add_development_dependency "rollbar"
-  spec.add_development_dependency "bundler", "~> 2.0"
+  spec.add_development_dependency "bundler", ">= 2.0"
   spec.add_development_dependency "rake"
   spec.add_development_dependency "rspec"
   spec.add_development_dependency "simplecov"
