@@ -28,9 +28,9 @@ Gem::Specification.new do |spec|
   spec.add_dependency "tzinfo"
   spec.add_dependency "sinatra"
   spec.add_dependency "rack-contrib"
-  spec.add_dependency "oj"
   spec.add_dependency "activerecord", ">= 7.1"
   spec.add_dependency "retriable"
+  spec.add_dependency "ostruct"
 
   spec.add_development_dependency "sqlite3", ">= 1.3"
   spec.add_development_dependency "mysql2"
