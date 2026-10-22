@@ -75,7 +75,7 @@ CronoTrigger.load_config(options[:config], options[:env]) if options[:config]
   CronoTrigger.config[name] = options[name] if options[name]
 end
 
-CronoTrigger.config.model_names = ARGV
+CronoTrigger.config.model_names = ARGV unless ARGV.empty?
 
 se = ServerEngine.create(nil, CronoTrigger::Worker, {
   daemonize: options[:daemonize],

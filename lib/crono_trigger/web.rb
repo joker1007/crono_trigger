@@ -35,7 +35,9 @@ module CronoTrigger
       worker_id = params[:worker_id]
       sig = params[:signal]
       if worker_id && sig
-        if CronoTrigger::Models::Signal.send_signal(sig, worker_id)
+        # Check before creating because assigning an undefined enum value raises ArgumentError
+        if CronoTrigger::Models::Signal.signals.key?(sig)
+          CronoTrigger::Models::Signal.send_signal(sig, worker_id)
           status 200
           body ""
         else

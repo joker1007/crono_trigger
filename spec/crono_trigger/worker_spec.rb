@@ -45,6 +45,24 @@ RSpec.describe CronoTrigger::Worker do
       expect(alive_workers[0].last_heartbeated_at).to be_a(Time)
     end
 
+    [nil, []].each do |model_names|
+      context "when model_names is #{model_names.inspect}" do
+        around do |example|
+          original = CronoTrigger.config.model_names
+          CronoTrigger.config.model_names = model_names
+          example.run
+        ensure
+          CronoTrigger.config.model_names = original
+        end
+
+        it "polls all models including CronoTrigger::Schedulable" do
+          worker_run
+          expect(worker.polling_threads.size).to eq(1)
+          expect(CronoTrigger::Models::Worker.alive_workers.first.polling_model_names).to eq(["Notification"])
+        end
+      end
+    end
+
     it "quiet polling thread when give signal TSTP" do
       worker_run
       sleep 1
