@@ -426,6 +426,26 @@ RSpec.describe CronoTrigger::Schedulable do
       end
     end
 
+    context "#execute raises an exception which is not a StandardError" do
+      it "records the execution as failed" do
+        Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
+          notification1
+        end
+
+        allow(notification1).to receive(:execute).and_raise(NotImplementedError, "not implemented")
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          notification1.do_execute
+
+          execution = CronoTrigger::Models::Execution.last
+          expect(execution.status).to eq("failed")
+          expect(execution.error_name).to eq("NotImplementedError")
+          expect(execution.error_reason).to eq("not implemented")
+          expect(notification1.reload.retry_count).to eq(1)
+        end
+      end
+    end
+
     context "#execute throw :abort" do
       it "call #execute and #reset!" do
         Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do

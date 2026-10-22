@@ -23,7 +23,7 @@ module CronoTrigger
           else
             execution.complete!
           end
-        rescue => e
+        rescue Exception => e
           execution.error!(e)
           raise
         end
