@@ -409,6 +409,40 @@ RSpec.describe CronoTrigger::Schedulable do
       end
     end
 
+    context "when the record is deleted during the execution" do
+      it "skips resetting the record with a warning" do
+        Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
+          notification1
+        end
+        allow(notification1).to receive(:execute) { notification1.destroy }
+        log = StringIO.new
+        allow(notification1).to receive(:logger).and_return(Logger.new(log))
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          expect { notification1.do_execute }.not_to raise_error
+        end
+
+        expect(Notification.exists?(notification1.id)).to be false
+        expect(log.string).to include("Skip updating Notification-#{notification1.id} because the record has been deleted or locked by another worker")
+      end
+    end
+
+    context "when the record is duplicated during the execution" do
+      it "does not hold the lock in the copy" do
+        Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
+          notification1
+        end
+        copy = nil
+        allow(notification1).to receive(:execute) { copy = notification1.dup }
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          notification1.do_execute
+        end
+
+        expect(copy.instance_variable_get(:@crono_trigger_holding_lock)).to be_nil
+      end
+    end
+
     it "call #execute and update next_execute_at" do
       Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
         notification1

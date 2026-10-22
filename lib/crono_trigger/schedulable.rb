@@ -119,6 +119,12 @@ module CronoTrigger
       end
     end
 
+    # A copy does not hold the lock, but `dup` would share the lock state of the original during an execution
+    private def initialize_dup(other)
+      super
+      @crono_trigger_holding_lock = nil
+    end
+
     def do_execute
       @crono_trigger_holding_lock = {
         crono_trigger_column_name(:execute_lock) => self[crono_trigger_column_name(:execute_lock)],
@@ -413,7 +419,7 @@ module CronoTrigger
         .where(@crono_trigger_holding_lock)
         .update_all(attributes)
       if updated_count.zero?
-        logger&.warn("Skip updating #{self.class}-#{id} because the lock has been taken by another worker")
+        logger&.warn("Skip updating #{self.class}-#{id} because the record has been deleted or locked by another worker")
         return false
       end
 
