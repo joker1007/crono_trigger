@@ -35,7 +35,8 @@ RSpec.describe "Execute records" do
     end
 
     it "processes all the records without returning from #poll" do
-      expect(Notification).to receive(:executables_with_lock).exactly(3).times.and_call_original # 76 / 25 * 3 + 1(last one) + 1(maybe_has_next)
+      allow(CronoTrigger.config).to receive(:fetch_records) { 75 }
+      expect(Notification).to receive(:executables_with_lock).exactly(2).times.and_call_original # 76 / 75 + 1(last one)
       worker = worker_class.new
       Thread.start { worker.run }
       sleep CronoTrigger.config.polling_interval + 2
@@ -47,41 +48,10 @@ RSpec.describe "Execute records" do
 
     it "fetches `fetch_records` size at once in #poll" do
       allow(CronoTrigger.config).to receive(:fetch_records) { 5 }
-      expect(Notification).to receive(:executables_with_lock).exactly(17).times.and_call_original # 76 / 5 + 1(last one) + 1(maybe_has_next)
+      expect(Notification).to receive(:executables_with_lock).exactly(16).times.and_call_original # 76 / 5 + 1(last one)
       worker = worker_class.new
       Thread.start { worker.run }
       sleep CronoTrigger.config.polling_interval + 2
-
-      expect(Notification.executables).not_to be_exists
-    ensure
-      worker.stop
-    end
-  end
-
-  context "when all the executable records are locked" do
-    around do |example|
-      original_polling_interval = CronoTrigger.config.polling_interval
-      CronoTrigger.config.polling_interval = 2
-
-      example.run
-
-      CronoTrigger.config.polling_interval = original_polling_interval
-    end
-
-    before do
-      now = Time.now
-      Notification.create!(name: 'notification', started_at: now, next_execute_at: now)
-    end
-
-    it "processes all the records without returning from #poll" do
-      allow_any_instance_of(Notification).to receive(:locking?) do
-        allow_any_instance_of(Notification).to receive(:locking?) { false }
-        true
-      end
-
-      worker = worker_class.new
-      Thread.start { worker.run }
-      sleep CronoTrigger.config.polling_interval + 1
 
       expect(Notification.executables).not_to be_exists
     ensure
@@ -97,7 +67,7 @@ RSpec.describe "Execute records" do
 
     it "stops the worker" do
       # Make maybe_has_next true
-      allow_any_instance_of(Notification).to receive(:locking?) { true }
+      allow(Notification).to receive(:executables_with_lock) { [[], true] }
 
       worker = worker_class.new
       Thread.start do

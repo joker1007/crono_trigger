@@ -7,7 +7,6 @@ module CronoTrigger
     HEARTBEAT_INTERVAL = 60
     SIGNAL_FETCH_INTERVAL = 10
     MONITOR_INTERVAL = 20
-    WORKER_COUNT_UPDATE_INTERVAL = 60
     EXECUTOR_SHUTDOWN_TIMELIMIT = 300
     OTHER_THREAD_SHUTDOWN_TIMELIMIT = 120
     attr_reader :polling_threads
@@ -45,8 +44,6 @@ module CronoTrigger
       @polling_threads = polling_threads
       @polling_threads.each(&:run)
 
-      @worker_count_updater_thread = run_worker_count_updater_thread
-
       ServerEngine::SignalThread.new do |st|
         st.trap(:TSTP) do
           @logger.info("[worker_id:#{@crono_trigger_worker_id}] Transit to quiet mode")
@@ -61,7 +58,6 @@ module CronoTrigger
       @executor.wait_for_termination(EXECUTOR_SHUTDOWN_TIMELIMIT)
       @heartbeat_thread.join(OTHER_THREAD_SHUTDOWN_TIMELIMIT)
       @signal_fetcn_thread.join(OTHER_THREAD_SHUTDOWN_TIMELIMIT)
-      @worker_count_updater_thread.join(OTHER_THREAD_SHUTDOWN_TIMELIMIT)
 
       unregister
     end
@@ -104,15 +100,6 @@ module CronoTrigger
       Thread.start do
         until @monitor_stop_flag.wait_for_set(MONITOR_INTERVAL)
           monitor
-        end
-      end
-    end
-
-    def run_worker_count_updater_thread
-      update_worker_count
-      Thread.start do
-        until @stop_flag.wait_for_set(WORKER_COUNT_UPDATE_INTERVAL)
-          update_worker_count
         end
       end
     end
@@ -203,18 +190,6 @@ module CronoTrigger
               max_latency_sec: oldest_next_execute_at.nil? ? 0 : now - oldest_next_execute_at,
             })
           end
-        end
-      end
-    rescue => ex
-      CronoTrigger::GlobalExceptionHandler.handle_global_exception(ex)
-    end
-
-    def update_worker_count
-      CronoTrigger.retry_on_db_errors do
-        CronoTrigger::Models::Worker.connection_pool.with_connection do
-          worker_count = workers_processing_same_models.count
-          return if worker_count.zero?
-          @polling_threads.each { |th| th.worker_count = worker_count }
         end
       end
     rescue => ex

@@ -201,6 +201,63 @@ RSpec.describe CronoTrigger::Schedulable do
       end
     end
 
+    context "when fetching multiple records at once" do
+      it "locks all fetched records and reflects lock attributes to the returned records", aggregate_failures: true do
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          notification1
+          notification2
+          notification3
+        end
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 15)) do
+          records, maybe_has_next = Notification.executables_with_lock(limit: 3)
+          expect(records).to match_array([notification2, notification3])
+          expect(maybe_has_next).to be false
+          records.each do |r|
+            expect(r.execute_lock).to eq(Time.current.to_i)
+            expect(r.locked_by).to eq(CronoTrigger.config.worker_id)
+            expect(r).not_to be_changed
+            expect(r.reload.execute_lock).to eq(Time.current.to_i)
+            expect(r.locked_by).to eq(CronoTrigger.config.worker_id)
+          end
+        end
+      end
+    end
+
+    context "when other transaction locks executable records" do
+      if %w[mysql postgresql].include?(ENV["DB"])
+        it "skips records locked by another transaction" do
+          Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+            notification2
+            notification3
+          end
+
+          Timecop.freeze(Time.utc(2017, 6, 18, 1, 15)) do
+            locked = Queue.new
+            release = Queue.new
+            locker = Thread.new do
+              Notification.connection_pool.with_connection do
+                Notification.transaction do
+                  Notification.lock.find(notification2.id)
+                  locked << true
+                  release.pop
+                end
+              end
+            end
+
+            begin
+              locked.pop
+              records, _ = Notification.executables_with_lock(limit: 2)
+              expect(records).to match_array([notification3])
+            ensure
+              release << true
+              locker.join
+            end
+          end
+        end
+      end
+    end
+
     context "when fetching executable record ids fails" do
       it "re-raises the original error" do
         allow(Notification).to receive(:executables).and_raise(ActiveRecord::ConnectionNotEstablished)

@@ -7,23 +7,13 @@ module CronoTrigger
 
       scope :recently, ->(schedule_type:) { where(schedule_type: schedule_type).order(executed_at: :desc) }
 
-      if ActiveRecord.version >= Gem::Version.new("7.0")
-        enum :status, {
-          executing: "executing",
-          completed: "completed",
-          failed: "failed",
-          retrying: "retrying",
-          aborted: "aborted",
-        }
-      else
-        enum status: {
-          executing: "executing",
-          completed: "completed",
-          failed: "failed",
-          retrying: "retrying",
-          aborted: "aborted",
-        }
-      end
+      enum :status, {
+        executing: "executing",
+        completed: "completed",
+        failed: "failed",
+        retrying: "retrying",
+        aborted: "aborted",
+      }
 
       def self.create_with_timestamp!
         create!(executed_at: Time.current, status: :executing, worker_id: CronoTrigger.config.worker_id)

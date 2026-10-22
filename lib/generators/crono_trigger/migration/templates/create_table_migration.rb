@@ -1,4 +1,4 @@
-class <%= migration_class_name %> < ActiveRecord::Migration<%= Rails::VERSION::MAJOR >= 5 ? "[#{ActiveRecord::Migration.current_version}]" : "" %>
+class <%= migration_class_name %> < ActiveRecord::Migration[<%= ActiveRecord::Migration.current_version %>]
   def change
     create_table :<%= table_name %><%= respond_to?(:primary_key_type) ? primary_key_type : "" %> do |t|
 <% attributes.each do |attribute| -%>
@@ -26,7 +26,7 @@ class <%= migration_class_name %> < ActiveRecord::Migration<%= Rails::VERSION::M
       t.integer   :retry_count, default: 0, null: false
 
 <% if options[:timestamps] %>
-      t.timestamps<%= Rails::VERSION::MAJOR >=5 ? " null: false" : "" %>
+      t.timestamps null: false
 <% end -%>
     end
 <% attributes.select { |attribute| attribute.respond_to?(:token?) && attribute.token? }.each do |attribute| -%>

@@ -1,4 +1,4 @@
-class CreateCronoTriggerSystemTables < ActiveRecord::VERSION::MAJOR >= 5 ? ActiveRecord::Migration[5.0] : ActiveRecord::Migration
+class CreateCronoTriggerSystemTables < ActiveRecord::Migration[5.0]
   def self.up
     create_table :crono_trigger_workers, id: :string, primary_key: :worker_id do |t|
       t.integer  :max_thread_size, null: false
