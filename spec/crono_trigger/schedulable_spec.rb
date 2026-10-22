@@ -359,6 +359,90 @@ RSpec.describe CronoTrigger::Schedulable do
   end
 
   describe "#do_execute" do
+    context "when another worker takes the lock during the execution" do
+      let(:taken_lock) { Time.utc(2017, 6, 18, 1, 11).to_i }
+
+      before do
+        Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
+          notification1
+        end
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          notification1.crono_trigger_lock!
+        end
+      end
+
+      def take_lock_by_another_worker(record)
+        Notification.where(id: record.id).update_all(execute_lock: taken_lock, locked_by: "another_worker")
+      end
+
+      it "does not reset the schedule which another worker is executing" do
+        allow(notification1).to receive(:execute) { take_lock_by_another_worker(notification1) }
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 11)) do
+          notification1.do_execute
+        end
+
+        notification1.reload
+        expect(notification1.execute_lock).to eq(taken_lock)
+        expect(notification1.locked_by).to eq("another_worker")
+        expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
+        expect(notification1.last_executed_at).to be_nil
+      end
+
+      it "does not retry the schedule which another worker is executing" do
+        allow(notification1).to receive(:execute) do
+          take_lock_by_another_worker(notification1)
+          raise "error"
+        end
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 11)) do
+          notification1.do_execute
+        end
+
+        notification1.reload
+        expect(notification1.execute_lock).to eq(taken_lock)
+        expect(notification1.locked_by).to eq("another_worker")
+        expect(notification1.next_execute_at).to eq(Time.utc(2017, 6, 18, 1, 0))
+        expect(notification1.retry_count).to eq(0)
+        expect(notification1.last_error_name).to be_nil
+      end
+    end
+
+    context "when the record is deleted during the execution" do
+      it "skips resetting the record with a warning" do
+        Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
+          notification1
+        end
+        allow(notification1).to receive(:execute) { notification1.destroy }
+        log = StringIO.new
+        allow(notification1).to receive(:logger).and_return(Logger.new(log))
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          expect { notification1.do_execute }.not_to raise_error
+        end
+
+        expect(Notification.exists?(notification1.id)).to be false
+        expect(log.string).to include("Skip updating Notification-#{notification1.id} because the record has been deleted or locked by another worker")
+      end
+    end
+
+    context "when the record is duplicated during the execution" do
+      it "does not hold the lock in the copy" do
+        Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
+          notification1
+        end
+        copy = nil
+        allow(notification1).to receive(:execute) { copy = notification1.dup }
+
+        Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+          notification1.do_execute
+        end
+
+        expect(copy.instance_variable_get(:@crono_trigger_holding_lock)).to be_nil
+      end
+    end
+
     it "call #execute and update next_execute_at" do
       Timecop.freeze(Time.utc(2017, 6, 18, 0, 59)) do
         notification1

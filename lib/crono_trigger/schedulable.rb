@@ -119,7 +119,17 @@ module CronoTrigger
       end
     end
 
+    # A copy does not hold the lock, but `dup` would share the lock state of the original during an execution
+    private def initialize_dup(other)
+      super
+      @crono_trigger_holding_lock = nil
+    end
+
     def do_execute
+      @crono_trigger_holding_lock = {
+        crono_trigger_column_name(:execute_lock) => self[crono_trigger_column_name(:execute_lock)],
+        crono_trigger_column_name(:locked_by) => self[crono_trigger_column_name(:locked_by)],
+      }
       ExecutionTracker.track(self) do
         do_execute_with_catch
       end
@@ -127,6 +137,8 @@ module CronoTrigger
       logger.error(ex) if logger
       save_last_error_info(ex)
       retry_or_reset!(ex)
+    ensure
+      @crono_trigger_holding_lock = nil
     end
 
     private def do_execute_with_catch
@@ -197,7 +209,7 @@ module CronoTrigger
         end
 
         merge_updated_at_for_crono_trigger!(attributes, now)
-        update_columns(attributes)
+        update_crono_trigger_columns(attributes)
       end
     end
 
@@ -225,7 +237,7 @@ module CronoTrigger
       end
 
       merge_updated_at_for_crono_trigger!(attributes, now)
-      update_columns(attributes)
+      update_crono_trigger_columns(attributes)
     end
 
     def abort_execution!
@@ -392,7 +404,31 @@ module CronoTrigger
       end
 
       merge_updated_at_for_crono_trigger!(attributes)
-      update_columns(attributes) unless attributes.empty?
+      update_crono_trigger_columns(attributes) unless attributes.empty?
+    end
+
+    # While executing, update only if this record still holds the lock acquired before the execution.
+    # Otherwise, the record has been locked by another worker after execute_lock_timeout, and updating it would
+    # overwrite the schedule which another worker is executing.
+    # Outside of executions (e.g. operations from the admin web), update unconditionally as before.
+    def update_crono_trigger_columns(attributes)
+      return update_columns(attributes) unless @crono_trigger_holding_lock
+
+      updated_count = self.class.unscoped
+        .where(self.class.primary_key => id)
+        .where(@crono_trigger_holding_lock)
+        .update_all(attributes)
+      if updated_count.zero?
+        logger&.warn("Skip updating #{self.class}-#{id} because the record has been deleted or locked by another worker")
+        return false
+      end
+
+      attributes.each { |name, value| self[name] = value }
+      clear_attribute_changes(attributes.keys.map(&:to_s))
+      @crono_trigger_holding_lock.each_key do |name|
+        @crono_trigger_holding_lock[name] = attributes[name] if attributes.key?(name)
+      end
+      true
     end
 
     def merge_updated_at_for_crono_trigger!(attributes, time = Time.current)
