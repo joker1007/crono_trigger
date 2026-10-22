@@ -10,15 +10,16 @@ module CronoTrigger
 
     def handle_exception(ex)
       handlers = CronoTrigger.config.error_handlers + Array(@record.crono_trigger_options[:error_handlers])
-      handlers.each do |callable|
-        callable, arity = ensure_callable(callable)
+      handlers.each do |handler|
+        callable, arity = ensure_callable(handler)
         args = [ex, @record]
         args = arity < 0 ? args : args.take(arity)
         callable.call(*args)
+      # Rescue each handler so that an error in one handler does not prevent the following handlers
+      rescue Exception => e
+        @record.logger&.error("CronoTrigger error handler raises error")
+        @record.logger&.error(e)
       end
-    rescue Exception => e
-      @record.logger.error("CronoTrigger error handler raises error")
-      @record.logger.error(e)
     end
 
     private
@@ -28,6 +29,8 @@ module CronoTrigger
         return callable, callable.arity
       elsif callable.is_a?(Symbol)
         return @record.method(callable), 1
+      else
+        raise ArgumentError, "error handler must respond to `call` or be a Symbol: #{callable.inspect}"
       end
     end
   end
