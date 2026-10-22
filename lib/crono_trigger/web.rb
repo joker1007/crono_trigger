@@ -1,7 +1,7 @@
 require "crono_trigger"
 require "sinatra/base"
 require "rack/contrib/post_body_content_type_parser"
-require "oj"
+require "active_support/json"
 
 module CronoTrigger
   class Web < Sinatra::Application
@@ -19,9 +19,9 @@ module CronoTrigger
       if params[:format] == "json"
         content_type :json
         @workers = CronoTrigger::Models::Worker.alive_workers
-        Oj.dump({
+        {
           records: @workers,
-        }, mode: :compat)
+        }.to_json
       else
         raise "unknown format"
       end
@@ -42,11 +42,11 @@ module CronoTrigger
           body ""
         else
           status 422
-          Oj.dump({error: "#{sig} signal is not supported"}, mode: :compat)
+          {error: "#{sig} signal is not supported"}.to_json
         end
       else
         status 422
-        Oj.dump({error: "Must set worker_id and signal"}, mode: :compat)
+        {error: "Must set worker_id and signal"}.to_json
       end
     end
 
@@ -54,9 +54,9 @@ module CronoTrigger
       if params[:format] == "json"
         content_type :json
         @signals = CronoTrigger::Models::Signal.order(sent_at: :desc).limit(30)
-        Oj.dump({
+        {
           records: @signals,
-        }, mode: :compat)
+        }.to_json
       else
         raise "unknown format"
       end
@@ -138,9 +138,9 @@ module CronoTrigger
               -"delay_sec" => r.locking?(at: now) ? 0 : (now - r[r.crono_trigger_column_name(:next_execute_at)]).to_i,
             }
           end
-          Oj.dump({
+          {
             records: records,
-          }, mode: :compat)
+          }.to_json
         else
           status 404
           "Model Class is not found"
@@ -158,9 +158,9 @@ module CronoTrigger
       if params[:format] == "json"
         content_type :json
         @models = CronoTrigger::Schedulable.included_by.map(&:name).sort
-        Oj.dump({
+        {
           models: @models,
-        }, mode: :compat)
+        }.to_json
       else
         raise "unknown format"
       end
@@ -191,9 +191,9 @@ module CronoTrigger
               -"error_reason" => r.error_reason,
             }
           end
-          Oj.dump({
+          {
             records: records,
-          }, mode: :compat)
+          }.to_json
         else
           status 404
           "Model Class is not found"

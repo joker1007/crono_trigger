@@ -6,6 +6,48 @@ RSpec.describe CronoTrigger::Web do
 
   after do
     CronoTrigger::Models::Signal.delete_all
+    CronoTrigger::Models::Worker.delete_all
+  end
+
+  describe "GET /workers.json" do
+    it "returns alive workers" do
+      Timecop.freeze(Time.utc(2017, 6, 18, 1, 0)) do
+        CronoTrigger::Models::Worker.create!(
+          worker_id: "worker1",
+          max_thread_size: 25,
+          current_executing_size: 1,
+          current_queue_size: 0,
+          executor_status: "running",
+          polling_model_names: ["Notification"],
+          last_heartbeated_at: Time.current,
+        )
+
+        response = request.get("/workers.json")
+
+        expect(response.status).to eq(200)
+        expect(response.content_type).to start_with("application/json")
+        expect(JSON.parse(response.body)).to eq({
+          "records" => [{
+            "worker_id" => "worker1",
+            "max_thread_size" => 25,
+            "current_executing_size" => 1,
+            "current_queue_size" => 0,
+            "executor_status" => "running",
+            "polling_model_names" => ["Notification"],
+            "last_heartbeated_at" => "2017-06-18T01:00:00.000Z",
+          }],
+        })
+      end
+    end
+  end
+
+  describe "GET /models.json" do
+    it "returns model names" do
+      response = request.get("/models.json")
+
+      expect(response.status).to eq(200)
+      expect(JSON.parse(response.body)).to eq({"models" => ["Notification"]})
+    end
   end
 
   describe "POST /signals" do
