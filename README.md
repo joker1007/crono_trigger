@@ -270,6 +270,10 @@ CronoTrigger.configure do |config|
 end
 ```
 
+NOTE: If the connection is lost right after the transaction that fetches and locks records is committed, the polling thread cannot know that the records have been locked.
+The retry fetches other records, and the locked records are not executed until `execute_lock_timeout` passes.
+They are executed after that as usual, so they are not lost but delayed.
+
 
 ## Specification
 
